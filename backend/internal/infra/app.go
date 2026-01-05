@@ -3,6 +3,7 @@ package infra
 import (
 	"github.com/TubagusAldiMY/finance-tracker-app/backend/internal/infra/middleware"
 	"github.com/TubagusAldiMY/finance-tracker-app/backend/internal/modules/budget"
+	"github.com/TubagusAldiMY/finance-tracker-app/backend/internal/modules/history"
 	"github.com/TubagusAldiMY/finance-tracker-app/backend/internal/modules/user" // Import module User
 
 	"github.com/go-playground/validator/v10"
@@ -37,4 +38,10 @@ func Bootstrap(config *BootstrapConfig) {
 	budgetHandler := budget.NewHandler(budgetUseCase)
 
 	budgetHandler.RegisterRoutes(config.App, authMiddleware)
+
+	historyRepo := history.NewRepository(config.DB)
+	historyUseCase := history.NewUseCase(historyRepo, config.Log, config.Validate)
+	historyHandler := history.NewHandler(historyUseCase)
+
+	historyHandler.RegisterRoutes(config.App, authMiddleware)
 }

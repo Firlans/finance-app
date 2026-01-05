@@ -31,8 +31,11 @@ go.work.sum
 /frontend/.vscode
 
 # Editor/IDE
+ .idea/
 .idea/
 # .vscode/
+
+Note
 
 api
 Note.md
