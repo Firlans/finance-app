@@ -129,6 +129,125 @@ const docTemplate = `{
                 }
             }
         },
+        "/histories": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get list of expenses for a specific budget",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "History"
+                ],
+                "summary": "List Transaction Histories",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Budget ID (UUID)",
+                        "name": "budget_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/history.History"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Record a new expense for a specific budget",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "History"
+                ],
+                "summary": "Create Transaction History",
+                "parameters": [
+                    {
+                        "description": "History Payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/history.CreateHistoryRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/history.History"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/users/current": {
             "get": {
                 "security": [
@@ -303,6 +422,50 @@ const docTemplate = `{
                     "example": "bf8a39e8-4226-4d04-a035-6453181878d6"
                 },
                 "user_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                }
+            }
+        },
+        "history.CreateHistoryRequest": {
+            "type": "object",
+            "required": [
+                "amount",
+                "budget_id",
+                "date"
+            ],
+            "properties": {
+                "amount": {
+                    "type": "number",
+                    "minimum": 1,
+                    "example": 50000
+                },
+                "budget_id": {
+                    "type": "string",
+                    "example": "bf8a39e8-4226-4d04-a035-6453181878d6"
+                },
+                "date": {
+                    "type": "string",
+                    "example": "2025-01-02"
+                }
+            }
+        },
+        "history.History": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "number",
+                    "example": 300000
+                },
+                "budget_id": {
+                    "type": "string",
+                    "example": "bf8a39e8-4226-4d04-a035-6453181878d6"
+                },
+                "date": {
+                    "type": "string",
+                    "example": "2025-01-01T00:00:00Z"
+                },
+                "id": {
                     "type": "string",
                     "example": "550e8400-e29b-41d4-a716-446655440000"
                 }

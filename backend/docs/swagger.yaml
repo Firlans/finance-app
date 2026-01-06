@@ -28,6 +28,38 @@ definitions:
         example: 550e8400-e29b-41d4-a716-446655440000
         type: string
     type: object
+  history.CreateHistoryRequest:
+    properties:
+      amount:
+        example: 50000
+        minimum: 1
+        type: number
+      budget_id:
+        example: bf8a39e8-4226-4d04-a035-6453181878d6
+        type: string
+      date:
+        example: "2025-01-02"
+        type: string
+    required:
+    - amount
+    - budget_id
+    - date
+    type: object
+  history.History:
+    properties:
+      amount:
+        example: 300000
+        type: number
+      budget_id:
+        example: bf8a39e8-4226-4d04-a035-6453181878d6
+        type: string
+      date:
+        example: "2025-01-01T00:00:00Z"
+        type: string
+      id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+    type: object
   user.LoginRequest:
     properties:
       email:
@@ -181,6 +213,84 @@ paths:
       summary: Create Monthly Budget
       tags:
       - Budget
+  /histories:
+    get:
+      consumes:
+      - application/json
+      description: Get list of expenses for a specific budget
+      parameters:
+      - description: Budget ID (UUID)
+        in: query
+        name: budget_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/history.History'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List Transaction Histories
+      tags:
+      - History
+    post:
+      consumes:
+      - application/json
+      description: Record a new expense for a specific budget
+      parameters:
+      - description: History Payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/history.CreateHistoryRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/history.History'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create Transaction History
+      tags:
+      - History
   /users/current:
     get:
       consumes:

@@ -1,6 +1,7 @@
 package user
 
 import (
+	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -32,13 +33,19 @@ func (h *Handler) Register(c *fiber.Ctx) error {
 
 	user, err := h.useCase.Register(c.Context(), &req)
 	if err != nil {
-		// 1. Cek Error Spesifik (409 Conflict)
+		// 1. Cek Error Validasi (Return 400 Bad Request)
+		if _, ok := err.(validator.ValidationErrors); ok {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error":   "Validation failed",
+				"details": err.Error(), // Atau format error yang lebih rapi
+			})
+		}
+		// 2. Cek Error Conflict (409)
 		if err == ErrEmailTaken || err == ErrUsernameTaken {
 			return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": err.Error()})
 		}
 
-		// 2. Default Error (500 Internal Server Error)
-		// Tidak perlu 'if err != nil' lagi disini, karena sudah pasti error (else logic)
+		// 3. Default Error (500)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Internal Server Error"})
 	}
 

@@ -5,6 +5,7 @@ import (
 	"github.com/TubagusAldiMY/finance-tracker-app/backend/internal/modules/budget"
 	"github.com/TubagusAldiMY/finance-tracker-app/backend/internal/modules/history"
 	"github.com/TubagusAldiMY/finance-tracker-app/backend/internal/modules/user" // Import module User
+	"github.com/gofiber/fiber/v2/middleware/logger"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
@@ -25,6 +26,26 @@ func Bootstrap(config *BootstrapConfig) {
 
 	// Auth Middleware
 	authMiddleware := middleware.AuthMiddleware(config.Config)
+
+	// Setup Logger Middleware
+	logConfig := logger.Config{
+		TimeFormat: "2006-01-02T15:04:05-0700",
+		TimeZone:   "Asia/Jakarta",
+	}
+
+	// Cek Environment dari Config
+	env := config.Config.GetString("app.env")
+
+	if env == "production" {
+		// Production: JSON Format (Mesin)
+		logConfig.Format = "{\"time\":\"${time}\",\"status\":${status},\"method\":\"${method}\",\"path\":\"${path}\",\"latency\":\"${latency}\"}\n"
+	} else {
+		// Development: Colorized Text (Manusia)
+		// Format default Fiber sudah cukup bagus untuk dev
+		logConfig.Format = "[${time}] ${status} - ${latency} ${method} ${path}\n"
+	}
+
+	config.App.Use(logger.New(logConfig))
 
 	// User Module
 	userRepo := user.NewRepository(config.DB)

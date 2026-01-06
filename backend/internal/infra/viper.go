@@ -2,24 +2,31 @@ package infra
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/spf13/viper"
 )
 
-// NewViper is a function to load config from config.json
-// You can change the implementation, for example load from env file, consul, etcd, etc
 func NewViper() *viper.Viper {
-	config := viper.New()
+	v := viper.New()
 
-	config.SetConfigName("config")
-	config.SetConfigType("json")
-	config.AddConfigPath("./../")
-	config.AddConfigPath("./")
-	err := config.ReadInConfig()
+	// 1. Set Nama File Config & Path
+	v.SetConfigName("config")
+	v.SetConfigType("json")
+	v.AddConfigPath(".")
+	v.AddConfigPath("./backend")
 
-	if err != nil {
-		panic(fmt.Errorf("Fatal error config file: %w \n", err))
+	// 2. Baca File Config
+	if err := v.ReadInConfig(); err != nil {
+		// cek: Apakah errornya karena "File Tidak Ditemukan"?
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+			panic(fmt.Errorf("fatal error config file: %w", err))
+		}
 	}
 
-	return config
+	// 3. Enable Environment Variables (Override)
+	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	v.AutomaticEnv()
+
+	return v
 }

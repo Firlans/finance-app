@@ -21,7 +21,7 @@ type UserResponse struct {
 
 // RegisterRequest: Validasi input saat daftar
 type RegisterRequest struct {
-	Username string `json:"username" validate:"required,alphanum,min=3,max=30" example:"tubagus_aldi"`
+	Username string `json:"username" validate:"required,min=3,max=30" example:"tubagus_aldi"`
 	Email    string `json:"email" validate:"required,email" example:"tubagus@example.com"`
 	Password string `json:"password" validate:"required,min=6" example:"RahasiaNegara123!"`
 }
