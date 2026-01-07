@@ -2,7 +2,6 @@ package budget
 
 import (
 	"github.com/shopspring/decimal"
-	"math"
 	"time"
 )
 
@@ -15,16 +14,11 @@ type MonthlyBudget struct {
 }
 
 type CreateBudgetRequest struct {
-	Budget float64 `json:"budget" validate:"required,min=1" example:"5000000"`
-	Date   string  `json:"date" validate:"required,datetime=2006-01-02" example:"2025-01-01"`
+	Budget string `json:"budget" validate:"required" example:"5000000.00"`
+	Date   string `json:"date" validate:"required,datetime=2006-01-02" example:"2025-01-01"`
 }
 
 type ListBudgetRequest struct {
 	StartDate string `query:"start_date"`
 	EndDate   string `query:"end_date"`
-}
-
-// Helper: Round to 2 decimal places
-func RoundFloat(val float64) float64 {
-	return math.Round(val*100) / 100
 }
