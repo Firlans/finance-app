@@ -16,8 +16,12 @@ func NewDatabase(v *viper.Viper, log *logrus.Logger) *pgxpool.Pool {
 	host := v.GetString("database.host")
 	port := v.GetInt("database.port")
 	database := v.GetString("database.name")
+	sslMode := v.GetString("database.sslmode") // "disable", "require", atau "verify-full"
+	if sslMode == "" {
+		sslMode = "disable" // Default dev
+	}
 
-	dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable", username, password, host, port, database)
+	dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s", username, password, host, port, database, sslMode)
 
 	config, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
