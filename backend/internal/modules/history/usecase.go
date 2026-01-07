@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 	"github.com/sirupsen/logrus"
 )
 
@@ -31,12 +32,12 @@ func NewUseCase(repo Repository, log *logrus.Logger, validate *validator.Validat
 }
 
 func (u useCase) CreateHistory(ctx context.Context, userID string, req *CreateHistoryRequest) (*History, error) {
-	//1. Validasi Input
+	// 1. Validasi Input
 	if err := u.validate.Struct(req); err != nil {
 		return nil, err
 	}
 
-	//2.Pastikan Budget ID Milik User ini
+	// 2. Pastikan Budget ID Milik User ini
 	isOwned, err := u.repo.IsBudgetOwnedByUser(ctx, req.BudgetID, userID)
 	if err != nil {
 		u.log.WithError(err).Error("Failed to check budget ownership")
@@ -47,22 +48,33 @@ func (u useCase) CreateHistory(ctx context.Context, userID string, req *CreateHi
 		return nil, ErrForbidden
 	}
 
-	//3. Parse Date
+	// 3. Parse Date
 	parsedDate, err := time.Parse("2006-01-02", req.Date)
 	if err != nil {
 		return nil, errors.New("invalid date format, use YYYY-MM-DD")
 	}
 
-	//4. Buat Object
+	decAmount, err := decimal.NewFromString(req.Amount)
+	if err != nil {
+		// Menangani jika user mengirim "limapuluhribu" (bukan angka)
+		return nil, errors.New("amount must be a valid number")
+	}
+
+	// Validasi Bisnis: Amount harus > 0
+	if decAmount.LessThanOrEqual(decimal.Zero) {
+		return nil, errors.New("amount must be greater than 0")
+	}
+
+	// 5. Buat Object
 	history := &History{
 		ID:        uuid.New().String(),
 		BudgetID:  req.BudgetID,
-		Amount:    RoundFloat(req.Amount),
+		Amount:    decAmount,
 		Date:      parsedDate,
 		CreatedAt: time.Now(),
 	}
 
-	//4. Simpan
+	// 6. Simpan
 	if err := u.repo.Create(ctx, history); err != nil {
 		u.log.WithError(err).Error("Failed to create history")
 		return nil, ErrInternalServer
@@ -72,12 +84,11 @@ func (u useCase) CreateHistory(ctx context.Context, userID string, req *CreateHi
 }
 
 func (u useCase) GetHistories(ctx context.Context, userID string, req *ListHistoryRequest) ([]*History, error) {
-	// 1. Validasi Input Budget Wajib ada
+	// Logic tidak berubah, kecuali struct History sudah Decimal
 	if err := u.validate.Struct(req); err != nil {
 		return nil, err
 	}
 
-	// 2. SECURITY CHECK: User Hanya Boleh lihathistory Budget Miliknya
 	isOwned, err := u.repo.IsBudgetOwnedByUser(ctx, req.BudgetID, userID)
 	if err != nil {
 		u.log.WithError(err).Error("Failed to check budget ownership")
@@ -88,7 +99,6 @@ func (u useCase) GetHistories(ctx context.Context, userID string, req *ListHisto
 		return nil, ErrForbidden
 	}
 
-	// 3. Ambil Data
 	histories, err := u.repo.FindManyByBudgetID(ctx, req.BudgetID)
 	if err != nil {
 		u.log.WithError(err).Error("Failed to fetch histories")
