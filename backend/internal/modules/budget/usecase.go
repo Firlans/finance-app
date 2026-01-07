@@ -7,12 +7,11 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal" // Import wajib
 	"github.com/sirupsen/logrus"
 )
 
-/*
- * Error Handling
- */
+/* Error Handling */
 var (
 	ErrInternalServer = errors.New("internal server error")
 )
@@ -38,22 +37,34 @@ func (u useCase) CreateBudget(ctx context.Context, userID string, req *CreateBud
 		return nil, err
 	}
 
-	// 2.Parse Date
+	// 2. Parse Date
 	parsedDat, err := time.Parse("2006-01-02", req.Date)
 	if err != nil {
 		return nil, errors.New("invalid date format, use YYYY-MM-DD")
 	}
 
-	// 3.Buat Entity
+	// 3. Parse Budget (String -> Decimal) [PERBAIKAN DISINI]
+	decBudget, err := decimal.NewFromString(req.Budget)
+	if err != nil {
+		// Return 400 Bad Request jika user mengirim "lima juta" bukannya "5000000"
+		return nil, errors.New("invalid budget amount, must be numeric")
+	}
+
+	// Validasi Bisnis: Budget harus > 0
+	if decBudget.LessThanOrEqual(decimal.Zero) {
+		return nil, errors.New("budget must be greater than 0")
+	}
+
+	// 4. Buat Entity
 	budget := &MonthlyBudget{
 		ID:        uuid.New().String(),
 		UserID:    userID,
-		Budget:    RoundFloat(req.Budget),
+		Budget:    decBudget,
 		Date:      parsedDat,
 		CreatedAt: time.Now(),
 	}
 
-	// 4. Simpan Ke DB
+	// 5. Simpan Ke DB
 	if err := u.repo.Create(ctx, budget); err != nil {
 		u.log.WithError(err).Error("Failed to create budget")
 		return nil, ErrInternalServer
@@ -62,6 +73,8 @@ func (u useCase) CreateBudget(ctx context.Context, userID string, req *CreateBud
 }
 
 func (u useCase) GetBudgets(ctx context.Context, userID string, req *ListBudgetRequest) ([]*MonthlyBudget, error) {
+	// Logic GetBudgets tidak berubah, kecuali jika ada filter amount
+	// ... (kode lama Anda aman)
 	// Default: Bulan Ini
 	now := time.Now()
 	startDate := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
