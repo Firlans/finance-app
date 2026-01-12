@@ -73,25 +73,32 @@ func (u useCase) CreateBudget(ctx context.Context, userID string, req *CreateBud
 }
 
 func (u useCase) GetBudgets(ctx context.Context, userID string, req *ListBudgetRequest) ([]*MonthlyBudget, error) {
-	// Logic GetBudgets tidak berubah, kecuali jika ada filter amount
-	// ... (kode lama Anda aman)
-	// Default: Bulan Ini
+	// 1. Tentukan Default Range (Bulan Ini)
 	now := time.Now()
+	// Start: Tanggal 1 bulan ini, jam 00:00:00 UTC
 	startDate := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
-	endDate := startDate.AddDate(0, 1, -1) // Akhir bulan
 
-	// Override jika ada filter
+	// End: Tanggal terakhir bulan ini, kita set ke jam 23:59:59.999999999
+	// Agar mencakup seluruh detik di hari terakhir.
+	endDate := startDate.AddDate(0, 1, -1).Add(time.Hour*23 + time.Minute*59 + time.Second*59)
+
+	// 2. Override jika ada filter StartDate dari User
 	if req.StartDate != "" {
 		if t, err := time.Parse("2006-01-02", req.StartDate); err == nil {
 			startDate = t
 		}
 	}
+
+	// 3. Override jika ada filter EndDate dari User [PERBAIKAN UTAMA DISINI]
 	if req.EndDate != "" {
 		if t, err := time.Parse("2006-01-02", req.EndDate); err == nil {
-			endDate = t
+			// Masalah sebelumnya: t adalah jam 00:00:00.
+			// Solusi: Tambahkan waktu agar menjadi 23:59:59 di hari tersebut.
+			endDate = t.Add(time.Hour*23 + time.Minute*59 + time.Second*59)
 		}
 	}
 
+	// 4. Panggil Repository
 	budgets, err := u.repo.FindMany(ctx, userID, startDate, endDate)
 	if err != nil {
 		u.log.WithError(err).Error("Failed to fetch budgets")

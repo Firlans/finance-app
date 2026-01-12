@@ -30,7 +30,7 @@ func NewRepository(db *pgxpool.Pool) Repository {
 }
 
 func (r *repository) Save(ctx context.Context, user *User) error {
-	// Ubah query kolom name -> username
+
 	query := `
 		INSERT INTO users (id, username, email, password, created_at, deleted_at) 
 		VALUES ($1, $2, $3, $4, $5, $6)
@@ -41,7 +41,7 @@ func (r *repository) Save(ctx context.Context, user *User) error {
 		var pgErr *pgconn.PgError
 		// Cek error Postgres Unique Violation (Code 23505)
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			// Deteksi constraint mana yang kena
+
 			// Pastikan nama constraint di DB Anda sesuai, atau gunakan logic strings.Contains
 			if strings.Contains(pgErr.ConstraintName, "email") {
 				return ErrEmailTaken
