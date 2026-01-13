@@ -12,7 +12,7 @@ const docTemplate = `{
         "termsOfService": "http://swagger.io/terms/",
         "contact": {
             "name": "Tubagus Aldi",
-            "email": "contact@tubsamy.tech"
+            "email": "admin@tubsamy.tech"
         },
         "version": "{{.Version}}"
     },
@@ -396,9 +396,8 @@ const docTemplate = `{
             ],
             "properties": {
                 "budget": {
-                    "type": "number",
-                    "minimum": 1,
-                    "example": 5000000
+                    "type": "string",
+                    "example": "5000000.00"
                 },
                 "date": {
                     "type": "string",
@@ -436,9 +435,8 @@ const docTemplate = `{
             ],
             "properties": {
                 "amount": {
-                    "type": "number",
-                    "minimum": 1,
-                    "example": 50000
+                    "type": "string",
+                    "example": "50000"
                 },
                 "budget_id": {
                     "type": "string",
