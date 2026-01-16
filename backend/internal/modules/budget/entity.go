@@ -1,8 +1,9 @@
 package budget
 
 import (
-	"github.com/shopspring/decimal"
 	"time"
+
+	"github.com/shopspring/decimal"
 )
 
 type MonthlyBudget struct {
@@ -14,6 +15,11 @@ type MonthlyBudget struct {
 }
 
 type CreateBudgetRequest struct {
+	Budget string `json:"budget" validate:"required" example:"5000000.00"`
+	Date   string `json:"date" validate:"required,datetime=2006-01-02" example:"2025-01-01"`
+}
+
+type UpdateBudgetRequest struct {
 	Budget string `json:"budget" validate:"required" example:"5000000.00"`
 	Date   string `json:"date" validate:"required,datetime=2006-01-02" example:"2025-01-01"`
 }

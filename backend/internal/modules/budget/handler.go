@@ -41,6 +41,51 @@ func (h *Handler) Create(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"data": budget})
 }
 
+// UpdateBudget godoc
+// @Summary      Update Monthly Budget
+// @Description  Update existing budget amount or date
+// @Tags         Budget
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id path string true "Budget ID"
+// @Param        request body UpdateBudgetRequest true "Update Payload"
+// @Success      200  {object}  MonthlyBudget
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      403  {object}  map[string]interface{}
+// @Failure      404  {object}  map[string]interface{}
+// @Failure      500  {object}  map[string]interface{}
+// @Router       /budgets/{id} [put]
+func (h *Handler) Update(c *fiber.Ctx) error {
+	userID, ok := c.Locals("user_id").(string)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
+
+	budgetID := c.Params("id")
+	if budgetID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Budget ID required"})
+	}
+
+	var req UpdateBudgetRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
+	}
+
+	budget, err := h.useCase.UpdateBudget(c.Context(), userID, budgetID, &req)
+	if err != nil {
+		if err == ErrBudgetNotFound {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
+		}
+		if err == ErrForbidden {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": err.Error()})
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"data": budget})
+}
+
 // ListBudget godoc
 // @Summary      List Budgets
 // @Description  Get list of monthly budgets with date filter
@@ -77,10 +122,9 @@ func (h *Handler) List(c *fiber.Ctx) error {
 }
 
 func (h *Handler) RegisterRoutes(app *fiber.App, authMiddleware fiber.Handler) {
-	// Grouping route: /api/budgets
-	// Middleware dipasang di level group ini
 	api := app.Group("/api/budgets", authMiddleware)
 
 	api.Post("/", h.Create)
+	api.Put("/:id", h.Update)
 	api.Get("/", h.List)
 }

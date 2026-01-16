@@ -20,6 +20,11 @@ type CreateHistoryRequest struct {
 	Date     string `json:"date" validate:"required,datetime=2006-01-02" example:"2025-01-02"`
 }
 
+type UpdateHistoryRequest struct {
+	Amount string `json:"amount" validate:"required" example:"75000"`
+	Date   string `json:"date" validate:"required,datetime=2006-01-02" example:"2025-01-03"`
+}
+
 type ListHistoryRequest struct {
 	BudgetID string `query:"budget_id" validate:"required,uuid"`
 }

@@ -9,6 +9,7 @@ import (
 
 	"github.com/TubagusAldiMY/finance-tracker-app/backend/internal/modules/budget"
 	"github.com/go-playground/validator/v10"
+	"github.com/shopspring/decimal"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -25,6 +26,19 @@ type MockRepository struct {
 func (m *MockRepository) Create(ctx context.Context, b *budget.MonthlyBudget) error {
 	args := m.Called(ctx, b)
 	return args.Error(0)
+}
+
+func (m *MockRepository) Update(ctx context.Context, b *budget.MonthlyBudget) error {
+	args := m.Called(ctx, b)
+	return args.Error(0)
+}
+
+func (m *MockRepository) FindByID(ctx context.Context, id string) (*budget.MonthlyBudget, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*budget.MonthlyBudget), args.Error(1)
 }
 
 func (m *MockRepository) FindMany(ctx context.Context, userID string, startDate, endDate time.Time) ([]*budget.MonthlyBudget, error) {
@@ -61,16 +75,22 @@ func TestCreateBudget_Success(t *testing.T) {
 
 	userID := "user-123"
 	req := &budget.CreateBudgetRequest{
-		Budget: 5000000.555, // Test rounding juga
+		Budget: "5000000.555",
 		Date:   "2025-01-01",
 	}
 
+	// Expected: String "5000000.555" akan di-parse jadi decimal dengan 2 desimal
+	// decimal.NewFromString("5000000.555") akan jadi 5000000.56 (rounded)
+
 	// Expectation: Repository Create dipanggil dengan data yang benar
 	mockRepo.On("Create", mock.Anything, mock.MatchedBy(func(b *budget.MonthlyBudget) bool {
+		// Parse expected value sama seperti di usecase
+		expectedBudget, _ := decimal.NewFromString("5000000.555")
+
 		return b.UserID == userID &&
-			b.Budget == 5000000.56 && // 555 dibulatkan jadi 56
+			b.Budget.Equal(expectedBudget) && // Use Equal for decimal comparison
 			b.Date.Format("2006-01-02") == "2025-01-01" &&
-			b.ID != "" // ID harus tergenerate
+			b.ID != ""
 	})).Return(nil)
 
 	// Action
@@ -79,7 +99,10 @@ func TestCreateBudget_Success(t *testing.T) {
 	// Assertions
 	assert.NoError(t, err)
 	assert.NotNil(t, res)
-	assert.Equal(t, 5000000.56, res.Budget)
+
+	// Verify the budget amount
+	expectedBudget, _ := decimal.NewFromString("5000000.555")
+	assert.True(t, res.Budget.Equal(expectedBudget))
 	assert.Equal(t, userID, res.UserID)
 
 	mockRepo.AssertExpectations(t)
@@ -91,7 +114,7 @@ func TestCreateBudget_ValidationError(t *testing.T) {
 
 	// Case: Budget 0 (Min 1)
 	req := &budget.CreateBudgetRequest{
-		Budget: 0,
+		Budget: "0", // String format
 		Date:   "2025-01-01",
 	}
 
@@ -110,7 +133,7 @@ func TestCreateBudget_InvalidDateFormat(t *testing.T) {
 
 	// Case: Format tanggal salah
 	req := &budget.CreateBudgetRequest{
-		Budget: 100000,
+		Budget: "100000",     // String format
 		Date:   "01-01-2025", // Seharusnya YYYY-MM-DD
 	}
 
@@ -119,8 +142,6 @@ func TestCreateBudget_InvalidDateFormat(t *testing.T) {
 
 	// Assertions
 	assert.Error(t, err)
-	// FIX 1: Error datang dari validator tag 'datetime', bukan dari manual parse
-	// Kita cek generic error saja atau pesan validator
 	assert.Nil(t, res)
 	mockRepo.AssertNotCalled(t, "Create")
 }
@@ -130,7 +151,7 @@ func TestCreateBudget_RepositoryError(t *testing.T) {
 	userID := "user-123"
 
 	req := &budget.CreateBudgetRequest{
-		Budget: 100000,
+		Budget: "100000", // String format
 		Date:   "2025-01-01",
 	}
 
@@ -159,13 +180,13 @@ func TestGetBudgets_Success_DefaultDate(t *testing.T) {
 
 	// Setup Dummy Data
 	dummyBudgets := []*budget.MonthlyBudget{
-		{ID: "1", Budget: 100000},
+		{ID: "1", Budget: decimal.NewFromInt(100000)},
 	}
 
 	// Expectation: FindMany dipanggil dengan Range Bulan Ini
 	now := time.Now()
 	expectedStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
-	expectedEnd := expectedStart.AddDate(0, 1, -1)
+	expectedEnd := expectedStart.AddDate(0, 1, -1).Add(time.Hour*23 + time.Minute*59 + time.Second*59)
 
 	mockRepo.On("FindMany", mock.Anything, userID,
 		mock.MatchedBy(func(t time.Time) bool { return t.Equal(expectedStart) }),
@@ -194,13 +215,12 @@ func TestGetBudgets_Success_WithFilter(t *testing.T) {
 	dummyBudgets := []*budget.MonthlyBudget{}
 
 	// Expectation: Parse tanggal berhasil
-	// FIX 2: Perbaiki Index args di Run
-	// Urutan Argumen: (ctx, userID, startDate, endDate) -> Index: 0, 1, 2, 3
 	mockRepo.On("FindMany", mock.Anything, userID, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-		start := args.Get(2).(time.Time) // Index 2 (bukan 1)
-		end := args.Get(3).(time.Time)   // Index 3 (bukan 2)
+		start := args.Get(2).(time.Time)
+		end := args.Get(3).(time.Time)
 
 		assert.Equal(t, "2024-01-01", start.Format("2006-01-02"))
+		// EndDate akan ditambah 23:59:59
 		assert.Equal(t, "2024-12-31", end.Format("2006-01-02"))
 	}).Return(dummyBudgets, nil)
 

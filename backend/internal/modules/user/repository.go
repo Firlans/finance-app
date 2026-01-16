@@ -10,11 +10,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-var (
-	ErrEmailTaken    = errors.New("email already taken")
-	ErrUsernameTaken = errors.New("username already taken")
-)
-
 type Repository interface {
 	Save(ctx context.Context, user *User) error
 	FindByEmail(ctx context.Context, email string) (*User, error)
@@ -30,7 +25,6 @@ func NewRepository(db *pgxpool.Pool) Repository {
 }
 
 func (r *repository) Save(ctx context.Context, user *User) error {
-
 	query := `
 		INSERT INTO users (id, username, email, password, created_at, deleted_at) 
 		VALUES ($1, $2, $3, $4, $5, $6)
@@ -41,7 +35,6 @@ func (r *repository) Save(ctx context.Context, user *User) error {
 		var pgErr *pgconn.PgError
 		// Cek error Postgres Unique Violation (Code 23505)
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-
 			// Pastikan nama constraint di DB Anda sesuai, atau gunakan logic strings.Contains
 			if strings.Contains(pgErr.ConstraintName, "email") {
 				return ErrEmailTaken

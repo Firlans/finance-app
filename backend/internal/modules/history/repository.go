@@ -2,14 +2,19 @@ package history
 
 import (
 	"context"
+	"errors"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Repository interface {
 	Create(ctx context.Context, history *History) error
+	Update(ctx context.Context, history *History) error
+	FindByID(ctx context.Context, id string) (*History, error)
 	FindManyByBudgetID(ctx context.Context, budgetID string) ([]*History, error)
 	IsBudgetOwnedByUser(ctx context.Context, budgetID string, userID string) (bool, error)
+	IsHistoryOwnedByUser(ctx context.Context, historyID string, userID string) (bool, error)
 }
 
 type repository struct {
@@ -25,9 +30,46 @@ func (r *repository) Create(ctx context.Context, h *History) error {
 		INSERT INTO histories (id, budget_id, amount, date, created_at)
 		VALUES ($1, $2, $3, $4, $5)
 	`
-	// pgx secara otomatis mengkonversi decimal.Decimal ke NUMERIC Postgres
 	_, err := r.db.Exec(ctx, query, h.ID, h.BudgetID, h.Amount, h.Date, h.CreatedAt)
 	return err
+}
+
+func (r *repository) Update(ctx context.Context, h *History) error {
+	query := `
+		UPDATE histories 
+		SET amount = $1, date = $2
+		WHERE id = $3
+	`
+	cmdTag, err := r.db.Exec(ctx, query, h.Amount, h.Date, h.ID)
+	if err != nil {
+		return err
+	}
+
+	if cmdTag.RowsAffected() == 0 {
+		return ErrHistoryNotFound
+	}
+
+	return nil
+}
+
+func (r *repository) FindByID(ctx context.Context, id string) (*History, error) {
+	query := `
+		SELECT id, budget_id, amount, date, created_at
+		FROM histories
+		WHERE id = $1
+	`
+
+	var h History
+	err := r.db.QueryRow(ctx, query, id).Scan(&h.ID, &h.BudgetID, &h.Amount, &h.Date, &h.CreatedAt)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &h, nil
 }
 
 func (r *repository) FindManyByBudgetID(ctx context.Context, budgetID string) ([]*History, error) {
@@ -46,7 +88,6 @@ func (r *repository) FindManyByBudgetID(ctx context.Context, budgetID string) ([
 	var histories []*History
 	for rows.Next() {
 		var h History
-		// Scan akan otomatis mapping NUMERIC DB ke decimal.Decimal Struct
 		if err := rows.Scan(&h.ID, &h.BudgetID, &h.Amount, &h.Date, &h.CreatedAt); err != nil {
 			return nil, err
 		}
@@ -59,5 +100,18 @@ func (r *repository) IsBudgetOwnedByUser(ctx context.Context, budgetID string, u
 	query := `SELECT EXISTS(SELECT 1 FROM monthly_budgets WHERE id = $1 AND user_id = $2)`
 	var exists bool
 	err := r.db.QueryRow(ctx, query, budgetID, userID).Scan(&exists)
+	return exists, err
+}
+
+func (r *repository) IsHistoryOwnedByUser(ctx context.Context, historyID string, userID string) (bool, error) {
+	query := `
+		SELECT EXISTS(
+			SELECT 1 FROM histories h
+			INNER JOIN monthly_budgets b ON h.budget_id = b.id
+			WHERE h.id = $1 AND b.user_id = $2
+		)
+	`
+	var exists bool
+	err := r.db.QueryRow(ctx, query, historyID, userID).Scan(&exists)
 	return exists, err
 }

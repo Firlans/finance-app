@@ -27,6 +27,18 @@ definitions:
         example: 550e8400-e29b-41d4-a716-446655440000
         type: string
     type: object
+  budget.UpdateBudgetRequest:
+    properties:
+      budget:
+        example: "5000000.00"
+        type: string
+      date:
+        example: "2025-01-01"
+        type: string
+    required:
+    - budget
+    - date
+    type: object
   history.CreateHistoryRequest:
     properties:
       amount:
@@ -57,6 +69,18 @@ definitions:
       id:
         example: 550e8400-e29b-41d4-a716-446655440000
         type: string
+    type: object
+  history.UpdateHistoryRequest:
+    properties:
+      amount:
+        example: "75000"
+        type: string
+      date:
+        example: "2025-01-03"
+        type: string
+    required:
+    - amount
+    - date
     type: object
   user.LoginRequest:
     properties:
@@ -211,6 +235,55 @@ paths:
       summary: Create Monthly Budget
       tags:
       - Budget
+  /budgets/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Update existing budget amount or date
+      parameters:
+      - description: Budget ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update Payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/budget.UpdateBudgetRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/budget.MonthlyBudget'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update Monthly Budget
+      tags:
+      - Budget
   /histories:
     get:
       consumes:
@@ -287,6 +360,55 @@ paths:
       security:
       - BearerAuth: []
       summary: Create Transaction History
+      tags:
+      - History
+  /histories/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Update existing expense record
+      parameters:
+      - description: History ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update Payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/history.UpdateHistoryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/history.History'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update Transaction History
       tags:
       - History
   /users/current:

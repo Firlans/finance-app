@@ -123,6 +123,80 @@
         }
       }
     },
+    "/budgets/{id}": {
+      "put": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Update existing budget amount or date",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "Budget"
+        ],
+        "summary": "Update Monthly Budget",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Budget ID",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "Update Payload",
+            "name": "request",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/budget.UpdateBudgetRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/budget.MonthlyBudget"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "schema": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "schema": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        }
+      }
+    },
     "/histories": {
       "get": {
         "security": [
@@ -227,6 +301,80 @@
           },
           "403": {
             "description": "Forbidden",
+            "schema": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        }
+      }
+    },
+    "/histories/{id}": {
+      "put": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "description": "Update existing expense record",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "History"
+        ],
+        "summary": "Update Transaction History",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "History ID",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "Update Payload",
+            "name": "request",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/history.UpdateHistoryRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/history.History"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "schema": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "404": {
+            "description": "Not Found",
             "schema": {
               "type": "object",
               "additionalProperties": true
@@ -420,6 +568,23 @@
         }
       }
     },
+    "budget.UpdateBudgetRequest": {
+      "type": "object",
+      "required": [
+        "budget",
+        "date"
+      ],
+      "properties": {
+        "budget": {
+          "type": "string",
+          "example": "5000000.00"
+        },
+        "date": {
+          "type": "string",
+          "example": "2025-01-01"
+        }
+      }
+    },
     "history.CreateHistoryRequest": {
       "type": "object",
       "required": [
@@ -460,6 +625,23 @@
         "id": {
           "type": "string",
           "example": "550e8400-e29b-41d4-a716-446655440000"
+        }
+      }
+    },
+    "history.UpdateHistoryRequest": {
+      "type": "object",
+      "required": [
+        "amount",
+        "date"
+      ],
+      "properties": {
+        "amount": {
+          "type": "string",
+          "example": "75000"
+        },
+        "date": {
+          "type": "string",
+          "example": "2025-01-03"
         }
       }
     },

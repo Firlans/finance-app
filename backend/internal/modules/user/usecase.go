@@ -13,11 +13,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var (
-	ErrInternalServer     = errors.New("internal server error")
-	ErrInvalidCredentials = errors.New("invalid email or password")
-)
-
 type UseCase interface {
 	Register(ctx context.Context, req *RegisterRequest) (*RegisterResponse, error)
 	Login(ctx context.Context, req *LoginRequest) (*LoginResponse, error)
@@ -66,7 +61,7 @@ func (u *useCase) Register(ctx context.Context, req *RegisterRequest) (*Register
 
 	// 4. Simpan ke DB
 	if err := u.repo.Save(ctx, newUser); err != nil {
-		// Cek error spesifik dari Repository (tanpa variabel ErrUserAlreadyExists lagi)
+		// Cek error spesifik dari Repository
 		if errors.Is(err, ErrEmailTaken) || errors.Is(err, ErrUsernameTaken) {
 			return nil, err
 		}
@@ -153,19 +148,13 @@ func (u *useCase) Login(ctx context.Context, req *LoginRequest) (*LoginResponse,
 }
 
 func (u *useCase) GetMe(ctx context.Context, userID string) (*UserResponse, error) {
-	// Kita reuse FindByEmail logic, tapi kali ini kita butuh FindByID di repository
-	// Karena FindByID belum ada, mari kita buat di langkah berikutnya.
-	// TAPI TUNGGU, di repository Anda belum ada FindByID?
-	// Mari kita tambahkan logic FindByID di repository dulu (lihat Langkah 3).
-
-	// Asumsi: Repository sudah punya FindByID (akan kita buat di Langkah 3)
 	user, err := u.repo.FindByID(ctx, userID)
 	if err != nil {
 		u.log.WithError(err).Error("GetMe: failed to find user")
 		return nil, ErrInternalServer
 	}
 	if user == nil {
-		return nil, errors.New("user not found")
+		return nil, ErrUserNotFound
 	}
 
 	return &UserResponse{
