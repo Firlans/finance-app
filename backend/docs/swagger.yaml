@@ -3,9 +3,8 @@ definitions:
   budget.CreateBudgetRequest:
     properties:
       budget:
-        example: 5000000
-        minimum: 1
-        type: number
+        example: "5000000.00"
+        type: string
       date:
         example: "2025-01-01"
         type: string
@@ -31,9 +30,8 @@ definitions:
   history.CreateHistoryRequest:
     properties:
       amount:
-        example: 50000
-        minimum: 1
-        type: number
+        example: "50000"
+        type: string
       budget_id:
         example: bf8a39e8-4226-4d04-a035-6453181878d6
         type: string
@@ -135,7 +133,7 @@ definitions:
 host: localhost:8080
 info:
   contact:
-    email: contact@tubsamy.tech
+    email: admin@tubsamy.tech
     name: Tubagus Aldi
   description: API Documentation for Finance Tracker App.
   termsOfService: http://swagger.io/terms/
