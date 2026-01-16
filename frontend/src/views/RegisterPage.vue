@@ -1,5 +1,5 @@
 <script setup>
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import BaseInput from '@/components/base/BaseInput.vue'
 import { Validator } from '@/utils/Validator'
 import { required, email, minLength, sameAs } from '@/utils/Validator'
@@ -11,10 +11,11 @@ const form = reactive({
   password: '',
   confirmPassword: ''
 })
-
+const showPassword = ref(false)
 const errors = reactive({})
 
 const handleRegister = async () => {
+  console.log(`${import.meta.env.VITE_BACKEND_SERVICE}/users/register`)
   const validator = new Validator(form, {
     name: [required()],
     email: [required(), email()],
@@ -31,26 +32,26 @@ const handleRegister = async () => {
 
 
   try {
-    const res = await fetch('http://localhost:3000/api/register', {
+
+    const res = await fetch(`${import.meta.env.VITE_BACKEND_SERVICE}/users/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        name: form.name,
+        username: form.name,
         email: form.email,
         password: form.password
       })
     })
 
-    const data = await res.json()
 
     if (!res.ok) {
       // error dari server (contoh: email sudah dipakai)
-      throw new Error(data.message || 'Register failed')
+      throw new Error(res.message || 'Register failed')
     }
 
-    // 3. sukses
+    const data = await res.json()
     console.log('REGISTER SUCCESS', data)
     router.push('/login')
   } catch (error) {
@@ -70,7 +71,15 @@ const handleRegister = async () => {
         <BaseInput v-model="form.email" label="Email" type="email" placeholder="email@example.com" :error="errors.email"
           inputClass="bg-slate-50" />
 
-        <BaseInput v-model="form.password" label="Password" type="password" :error="errors.password" />
+        <BaseInput v-model="form.password" label="Password" :type="showPassword ? 'text' : 'password'"
+          :error="errors.password">
+          <template #right>
+            <button type="button" class="text-sm text-slate-500" @click="showPassword = !showPassword">
+              {{ showPassword ? 'Hide' : 'Show' }}
+            </button>
+          </template>
+        </BaseInput>
+
 
         <BaseInput v-model="form.confirmPassword" label="Confirm Password" type="password"
           :error="errors.confirmPassword" />

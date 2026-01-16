@@ -7,10 +7,12 @@ const props = defineProps({
     default: ''
   },
   label: String,
+
   type: {
     type: String,
     default: 'text'
   },
+
   placeholder: String,
 
   error: {
@@ -39,7 +41,8 @@ const computedClass = computed(() => {
   return [
     baseClass,
     props.error ? errorClass : normalClass,
-    props.inputClass
+    props.inputClass,
+    'pr-12' // ruang untuk tombol kanan
   ].join(' ')
 })
 </script>
@@ -50,18 +53,17 @@ const computedClass = computed(() => {
       {{ label }}
     </label>
 
-    <input
-      :type="type"
-      :value="modelValue"
-      :placeholder="placeholder"
-      :class="computedClass"
-      @input="emit('update:modelValue', $event.target.value)"
-    />
+    <div class="relative">
+      <input :type="type" :value="modelValue" :placeholder="placeholder" :class="computedClass"
+        @input="emit('update:modelValue', $event.target.value)" />
 
-    <p
-      v-if="error"
-      class="text-sm text-red-500"
-    >
+      <!-- SLOT KANAN (opsional) -->
+      <div v-if="$slots.right" class="absolute inset-y-0 right-3 flex items-center">
+        <slot name="right" />
+      </div>
+    </div>
+
+    <p v-if="error" class="text-sm text-red-500">
       {{ error }}
     </p>
   </div>
