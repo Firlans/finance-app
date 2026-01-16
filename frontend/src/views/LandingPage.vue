@@ -1,9 +1,32 @@
 <script setup>
 import { useRouter } from 'vue-router'
 import SliderFeatures from '@/components/features/SliderFeatures.vue'
+import { onMounted, ref } from 'vue'
 
 const router = useRouter()
+const developers = ref([
+  { name: 'firlans', asof: 'Frontend Developer' },
+  { name: 'TubagusAldiMY', asof: 'backend Developer' }
+])
+onMounted(async () => {
+  const githubAPI = import.meta.env.VITE_GITHUB_API
+  const res = await Promise.all(
+    developers.value.map(async developer => {
+      const response = await fetch(`${githubAPI}${developer.name}`)
+      const data = await response.json()
 
+      return {
+        name: data.name || data.login,
+        role: developer.asof,
+        bio: data.bio,
+        github: data.html_url,
+        avatar: data.avatar_url,
+      }
+    })
+  )
+
+  contributors.value = res
+})
 // Feature data
 const features = [
   {
@@ -29,35 +52,20 @@ const features = [
 ]
 
 // Contributors data (based on GitHub contributors)
-const contributors = [
-  {
-    name: 'mrtech',
-    role: 'Lead Developer',
-    bio: 'Full-stack developer dengan passion untuk fintech solutions',
-    github: 'https://github.com/mrtech',
-    avatar: 'https://ui-avatars.com/api/?name=mrtech&background=3b82f6&color=fff'
-  },
-  {
-    name: 'DevTeam',
-    role: 'Contributors',
-    bio: 'Tim pengembang yang berdedikasi untuk menciptakan aplikasi keuangan terbaik',
-    github: 'https://github.com/orgs',
-    avatar: 'https://ui-avatars.com/api/?name=DevTeam&background=10b981&color=fff'
-  }
-]
+const contributors = ref([])
 
 const screenshots = [
   {
     id: 1,
     title: 'Dashboard Utama',
     description: 'Lihat ringkasan keuanganmu dalam satu tampilan',
-    image: '/public/Untitled.jpeg'
+    image: '/public/dashboard.png'
   },
   {
     id: 2,
     title: 'Pencatatan Transaksi',
     description: 'Catat pemasukan dan pengeluaran dengan mudah',
-    image: '/images/transaksi.png'
+    image: '/public/transaksi.png'
   },
   {
     id: 3,
