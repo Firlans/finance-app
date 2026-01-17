@@ -465,6 +465,31 @@ paths:
       summary: Login User
       tags:
       - User
+  /users/logout:
+    post:
+      consumes:
+      - application/json
+      description: Invalidate current session (client-side token deletion recommended)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Logout successful'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Logout User
+      tags:
+      - User
   /users/register:
     post:
       consumes:
