@@ -1,6 +1,9 @@
 package user
 
 import (
+	"time"
+
+	"github.com/TubagusAldiMY/finance-tracker-app/backend/internal/infra/middleware"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 )
@@ -28,25 +31,38 @@ func NewHandler(useCase UseCase) *Handler {
 func (h *Handler) Register(c *fiber.Ctx) error {
 	var req RegisterRequest
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":      "Invalid request body",
+			"request_id": c.Locals("request_id"),
+		})
 	}
 
 	user, err := h.useCase.Register(c.Context(), &req)
 	if err != nil {
 		if _, ok := err.(validator.ValidationErrors); ok {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error":   "Validation failed",
-				"details": err.Error(),
+				"error":      "Validation failed",
+				"details":    err.Error(),
+				"request_id": c.Locals("request_id"),
 			})
 		}
 		if err == ErrEmailTaken || err == ErrUsernameTaken {
-			return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": err.Error()})
+			return c.Status(fiber.StatusConflict).JSON(fiber.Map{
+				"error":      err.Error(),
+				"request_id": c.Locals("request_id"),
+			})
 		}
 
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Internal Server Error"})
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error":      "Internal Server Error",
+			"request_id": c.Locals("request_id"),
+		})
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"data": user})
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+		"data":       user,
+		"request_id": c.Locals("request_id"),
+	})
 }
 
 // Login godoc
@@ -65,7 +81,8 @@ func (h *Handler) Login(c *fiber.Ctx) error {
 
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid request Body",
+			"error":      "Invalid request Body",
+			"request_id": c.Locals("request_id"),
 		})
 	}
 
@@ -73,22 +90,26 @@ func (h *Handler) Login(c *fiber.Ctx) error {
 	if err != nil {
 		if err == ErrInvalidCredentials {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": err.Error(),
+				"error":      err.Error(),
+				"request_id": c.Locals("request_id"),
 			})
 		}
 
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Internal Server Error",
+			"error":      "Internal Server Error",
+			"request_id": c.Locals("request_id"),
 		})
 	}
+
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"data": resp,
+		"data":       resp,
+		"request_id": c.Locals("request_id"),
 	})
 }
 
 // Logout godoc
 // @Summary      Logout User
-// @Description  Invalidate current session (client-side token deletion recommended)
+// @Description  Invalidate current session by blacklisting token
 // @Tags         User
 // @Accept       json
 // @Produce      json
@@ -97,25 +118,38 @@ func (h *Handler) Login(c *fiber.Ctx) error {
 // @Failure      401  {object}  map[string]string "error: Unauthorized"
 // @Router       /users/logout [post]
 func (h *Handler) Logout(c *fiber.Ctx) error {
-	// JWT is stateless, so logout is handled client-side
-	// Client should delete token from storage (localStorage/sessionStorage)
-
 	// Validate that user is authenticated
 	userID, ok := c.Locals("user_id").(string)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "Unauthorized",
+			"error":      "Unauthorized",
+			"request_id": c.Locals("request_id"),
 		})
 	}
 
-	// Optional: Log logout event for audit trail
-	// h.log.Info("User logged out", "user_id", userID)
+	// Get token from context (set by auth middleware)
+	token, ok := c.Locals("access_token").(string)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error":      "Token not found",
+			"request_id": c.Locals("request_id"),
+		})
+	}
 
-	// Response success
-	// Client MUST delete token after receiving this response
+	// Get token expiry
+	tokenExp, ok := c.Locals("token_exp").(time.Time)
+	if !ok {
+		// Default to 24 hours if not found
+		tokenExp = time.Now().Add(24 * time.Hour)
+	}
+
+	// Add token to blacklist
+	middleware.GetBlacklist().Add(token, tokenExp)
+
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"message": "Logout successful. Please delete your access token.",
-		"user_id": userID, // Optional: confirm which user logged out
+		"message":    "Logout successful. Token has been invalidated.",
+		"user_id":    userID,
+		"request_id": c.Locals("request_id"),
 	})
 }
 
@@ -132,24 +166,33 @@ func (h *Handler) Logout(c *fiber.Ctx) error {
 func (h *Handler) GetMe(c *fiber.Ctx) error {
 	userID, ok := c.Locals("user_id").(string)
 	if !ok {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error":      "Unauthorized",
+			"request_id": c.Locals("request_id"),
+		})
 	}
 
 	resp, err := h.useCase.GetMe(c.Context(), userID)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Internal Server Error"})
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error":      "Internal Server Error",
+			"request_id": c.Locals("request_id"),
+		})
 	}
 
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{"data": resp})
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"data":       resp,
+		"request_id": c.Locals("request_id"),
+	})
 }
 
 // RegisterRoutes registers all user-related routes
-func (h *Handler) RegisterRoutes(app *fiber.App, authMiddleware fiber.Handler) {
+func (h *Handler) RegisterRoutes(app *fiber.App, authMiddleware fiber.Handler, authRateLimiter fiber.Handler) {
 	api := app.Group("/api/users")
 
-	// Public routes
-	api.Post("/register", h.Register)
-	api.Post("/login", h.Login)
+	// Public routes with stricter rate limiting
+	api.Post("/register", authRateLimiter, h.Register)
+	api.Post("/login", authRateLimiter, h.Login)
 
 	// Protected routes - require authentication
 	api.Post("/logout", authMiddleware, h.Logout)

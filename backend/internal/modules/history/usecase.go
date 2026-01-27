@@ -4,10 +4,16 @@ import (
 	"context"
 	"time"
 
+	"github.com/TubagusAldiMY/finance-tracker-app/backend/pkg/validators"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"github.com/sirupsen/logrus"
+)
+
+var (
+	// Max amount: 1 billion (same as budget)
+	MaxAmount = decimal.NewFromInt(1_000_000_000)
 )
 
 type UseCase interface {
@@ -27,10 +33,22 @@ func NewUseCase(repo Repository, log *logrus.Logger, validate *validator.Validat
 }
 
 func (u useCase) CreateHistory(ctx context.Context, userID string, req *CreateHistoryRequest) (*History, error) {
+	// 1. Struct validation
 	if err := u.validate.Struct(req); err != nil {
 		return nil, err
 	}
 
+	// 2. Validate UUIDs
+	if err := validators.ValidateUUID(userID); err != nil {
+		u.log.WithError(err).Warn("Invalid user ID format")
+		return nil, ErrInternalServer
+	}
+
+	if err := validators.ValidateUUID(req.BudgetID); err != nil {
+		return nil, validators.ErrInvalidUUID
+	}
+
+	// 3. Check budget ownership
 	isOwned, err := u.repo.IsBudgetOwnedByUser(ctx, req.BudgetID, userID)
 	if err != nil {
 		u.log.WithError(err).Error("Failed to check budget ownership")
@@ -38,23 +56,26 @@ func (u useCase) CreateHistory(ctx context.Context, userID string, req *CreateHi
 	}
 
 	if !isOwned {
+		u.log.WithFields(logrus.Fields{
+			"user_id":   userID,
+			"budget_id": req.BudgetID,
+		}).Warn("Forbidden budget access attempt")
 		return nil, ErrForbidden
 	}
 
-	parsedDate, err := time.Parse("2006-01-02", req.Date)
+	// 4. Validate date
+	parsedDate, err := validators.ValidateDate(req.Date)
 	if err != nil {
-		return nil, ErrInvalidDateFormat
+		return nil, err
 	}
 
-	decAmount, err := decimal.NewFromString(req.Amount)
+	// 5. Validate amount
+	decAmount, err := validators.ValidateDecimal(req.Amount, MaxAmount)
 	if err != nil {
-		return nil, ErrInvalidAmount
+		return nil, err
 	}
 
-	if decAmount.LessThanOrEqual(decimal.Zero) {
-		return nil, ErrAmountMustPositive
-	}
-
+	// 6. Create entity
 	history := &History{
 		ID:        uuid.New().String(),
 		BudgetID:  req.BudgetID,
@@ -63,6 +84,7 @@ func (u useCase) CreateHistory(ctx context.Context, userID string, req *CreateHi
 		CreatedAt: time.Now(),
 	}
 
+	// 7. Save to DB
 	if err := u.repo.Create(ctx, history); err != nil {
 		u.log.WithError(err).Error("Failed to create history")
 		return nil, ErrInternalServer
@@ -77,7 +99,17 @@ func (u useCase) UpdateHistory(ctx context.Context, userID string, historyID str
 		return nil, err
 	}
 
-	// 2. Cek ownership melalui join table
+	// 2. Validate UUIDs
+	if err := validators.ValidateUUID(userID); err != nil {
+		u.log.WithError(err).Warn("Invalid user ID format")
+		return nil, ErrInternalServer
+	}
+
+	if err := validators.ValidateUUID(historyID); err != nil {
+		return nil, validators.ErrInvalidUUID
+	}
+
+	// 3. Cek ownership melalui join table
 	isOwned, err := u.repo.IsHistoryOwnedByUser(ctx, historyID, userID)
 	if err != nil {
 		u.log.WithError(err).Error("Failed to check history ownership")
@@ -85,10 +117,14 @@ func (u useCase) UpdateHistory(ctx context.Context, userID string, historyID str
 	}
 
 	if !isOwned {
+		u.log.WithFields(logrus.Fields{
+			"user_id":    userID,
+			"history_id": historyID,
+		}).Warn("Forbidden history access attempt")
 		return nil, ErrForbidden
 	}
 
-	// 3. Get existing history
+	// 4. Get existing history
 	existingHistory, err := u.repo.FindByID(ctx, historyID)
 	if err != nil {
 		u.log.WithError(err).Error("Failed to find history")
@@ -99,22 +135,18 @@ func (u useCase) UpdateHistory(ctx context.Context, userID string, historyID str
 		return nil, ErrHistoryNotFound
 	}
 
-	// 4. Parse dan validasi data baru
-	parsedDate, err := time.Parse("2006-01-02", req.Date)
+	// 5. Parse dan validasi data baru
+	parsedDate, err := validators.ValidateDate(req.Date)
 	if err != nil {
-		return nil, ErrInvalidDateFormat
+		return nil, err
 	}
 
-	decAmount, err := decimal.NewFromString(req.Amount)
+	decAmount, err := validators.ValidateDecimal(req.Amount, MaxAmount)
 	if err != nil {
-		return nil, ErrInvalidAmount
+		return nil, err
 	}
 
-	if decAmount.LessThanOrEqual(decimal.Zero) {
-		return nil, ErrAmountMustPositive
-	}
-
-	// 5. Update data
+	// 6. Update data
 	existingHistory.Amount = decAmount
 	existingHistory.Date = parsedDate
 
@@ -127,10 +159,22 @@ func (u useCase) UpdateHistory(ctx context.Context, userID string, historyID str
 }
 
 func (u useCase) GetHistories(ctx context.Context, userID string, req *ListHistoryRequest) ([]*History, error) {
+	// 1. Validate struct
 	if err := u.validate.Struct(req); err != nil {
 		return nil, err
 	}
 
+	// 2. Validate UUIDs
+	if err := validators.ValidateUUID(userID); err != nil {
+		u.log.WithError(err).Warn("Invalid user ID format")
+		return nil, ErrInternalServer
+	}
+
+	if err := validators.ValidateUUID(req.BudgetID); err != nil {
+		return nil, validators.ErrInvalidUUID
+	}
+
+	// 3. Check ownership
 	isOwned, err := u.repo.IsBudgetOwnedByUser(ctx, req.BudgetID, userID)
 	if err != nil {
 		u.log.WithError(err).Error("Failed to check budget ownership")
@@ -138,9 +182,14 @@ func (u useCase) GetHistories(ctx context.Context, userID string, req *ListHisto
 	}
 
 	if !isOwned {
+		u.log.WithFields(logrus.Fields{
+			"user_id":   userID,
+			"budget_id": req.BudgetID,
+		}).Warn("Forbidden budget access attempt")
 		return nil, ErrForbidden
 	}
 
+	// 4. Fetch histories
 	histories, err := u.repo.FindManyByBudgetID(ctx, req.BudgetID)
 	if err != nil {
 		u.log.WithError(err).Error("Failed to fetch histories")
