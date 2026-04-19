@@ -1,8 +1,10 @@
 <script setup>
 import { reactive, ref } from 'vue'
 import BaseInput from '@/components/base/BaseInput.vue'
+import LoadingFeature from '@/components/features/LoadingFeaures.vue'
 import { Validator } from '@/utils/Validator'
 import { required, email, minLength, sameAs } from '@/utils/Validator'
+import { parseApiError } from '@/utils/Error.js'
 import router from '@/router'
 
 const form = reactive({
@@ -13,6 +15,8 @@ const form = reactive({
 })
 const showPassword = ref(false)
 const errors = reactive({})
+const loading = ref(false)
+const loadingLabel = ref('')
 
 const handleRegister = async () => {
   console.log(`${import.meta.env.VITE_BACKEND_SERVICE}/users/register`)
@@ -31,6 +35,9 @@ const handleRegister = async () => {
   Object.keys(errors).forEach(k => delete errors[k])
 
 
+  loading.value = true
+  loadingLabel.value = 'Registering account...'
+
   try {
 
     const res = await fetch(`${import.meta.env.VITE_BACKEND_SERVICE}/users/register`, {
@@ -47,15 +54,18 @@ const handleRegister = async () => {
 
 
     if (!res.ok) {
-      // error dari server (contoh: email sudah dipakai)
-      throw new Error(res.message || 'Register failed')
+      const errorMessage = await parseApiError(res)
+      throw new Error(errorMessage)
     }
 
     const data = await res.json()
     console.log('REGISTER SUCCESS', data)
     router.push('/login')
   } catch (error) {
-    alert('gagal mendaftar' + error)
+    alert('gagal mendaftar: ' + (error?.message || error))
+  } finally {
+    loading.value = false
+    loadingLabel.value = ''
   }
 }
 
@@ -63,6 +73,7 @@ const handleRegister = async () => {
 
 <template>
   <div class="min-h-screen flex items-center justify-center bg-slate-100">
+    <LoadingFeature :show="loading" :label="loadingLabel" />
     <div class="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full">
       <h1 class="text-2xl font-bold text-center mb-6">Register</h1>
       <form @submit.prevent="handleRegister" class="space-y-4">

@@ -1,5 +1,8 @@
 <script setup>
 import BaseInput from '@/components/base/BaseInput.vue'
+import NotificationFeature from '@/components/features/NotificationFeature.vue'
+import LoadingFeature from '@/components/features/LoadingFeaures.vue'
+import { parseApiError } from '@/utils/Error.js'
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -12,6 +15,10 @@ const form = reactive({
 
 const showPassword = ref(false)
 const errors = reactive({})
+const loading = ref(false)
+const loadingLabel = ref('')
+
+const notif = reactive({ message: '', type: 'success' })
 
 const handleLogin = async () => {
   // reset error
@@ -28,6 +35,9 @@ const handleLogin = async () => {
     return
   }
 
+  loading.value = true
+  loadingLabel.value = 'Logging in...'
+
   try {
     const res = await fetch(
       `${import.meta.env.VITE_BACKEND_SERVICE}/users/login`,
@@ -41,32 +51,40 @@ const handleLogin = async () => {
       }
     )
 
-    // backend menolak
     if (!res.ok) {
-      const msg = await res.text()
-      throw new Error(msg || 'Login failed')
+      const errorMessage = await parseApiError(res)
+      throw new Error(errorMessage)
     }
 
-    // backend sukses (JSON atau tidak)
     let data = null
     const contentType = res.headers.get('content-type')
     if (contentType?.includes('application/json')) {
       data = await res.json()
     }
 
-    console.log('LOGIN SUCCESS', data)
-    localStorage.setItem('access_token', data.data.access_token)
-    // redirect
-    router.push('/dashboard')
+    localStorage.setItem('access_token', data?.data?.access_token)
+
+    // show success notification then redirect shortly after
+    notif.message = data?.message || 'Login successful'
+    notif.type = 'success'
+    setTimeout(() => router.push('/dashboard'), 800)
   } catch (error) {
-    alert(error.message || 'Login error')
+    notif.message = error.message || 'Login error'
+    notif.type = 'error'
+  } finally {
+    loading.value = false
+    loadingLabel.value = ''
   }
 }
+
+const handleNotifClose = () => { notif.message = '' }
 </script>
 
 
 <template>
   <div class="min-h-screen flex items-center justify-center bg-slate-100">
+    <NotificationFeature :message="notif.message" :type="notif.type" @close="handleNotifClose" />
+    <LoadingFeature :show="loading" :label="loadingLabel" />
     <div class="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full">
       <h1 class="text-2xl font-bold text-center mb-6">Login</h1>
       <form @submit.prevent="handleLogin" class="space-y-4">
@@ -84,10 +102,13 @@ const handleLogin = async () => {
           Login
         </button>
       </form>
-      <p class="text-center mt-4 text-slate-600">
-        Don't have an account?
-        <router-link to="/register" class="text-blue-600 hover:underline">Register</router-link>
-      </p>
+      <div class="flex justify-between items-center mt-4 text-sm text-slate-600">
+        <router-link to="/forget-password" class="text-blue-600 hover:underline">Forgot password?</router-link>
+        <span>
+          Don't have an account?
+          <router-link to="/register" class="text-blue-600 hover:underline">Register</router-link>
+        </span>
+      </div>
     </div>
   </div>
 </template>

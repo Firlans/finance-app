@@ -1,6 +1,7 @@
 <script setup>
 import { useRouter } from 'vue-router'
-import SliderFeatures from '@/components/features/SliderFeatures.vue'
+import SliderFeature from '@/components/features/SliderFeature.vue'
+import LoadingFeature from '@/components/features/LoadingFeaures.vue'
 import { onMounted, ref } from 'vue'
 
 const router = useRouter()
@@ -9,23 +10,33 @@ const developers = ref([
   { name: 'TubagusAldiMY', asof: 'backend Developer' }
 ])
 onMounted(async () => {
-  const githubAPI = import.meta.env.VITE_GITHUB_API
-  const res = await Promise.all(
-    developers.value.map(async developer => {
-      const response = await fetch(`${githubAPI}${developer.name}`)
-      const data = await response.json()
+  loading.value = true
+  loadingLabel.value = 'Loading developer profiles...'
 
-      return {
-        name: data.name || data.login,
-        role: developer.asof,
-        bio: data.bio,
-        github: data.html_url,
-        avatar: data.avatar_url,
-      }
-    })
-  )
+  try {
+    const githubAPI = import.meta.env.VITE_GITHUB_API
+    const res = await Promise.all(
+      developers.value.map(async developer => {
+        const response = await fetch(`${githubAPI}${developer.name}`)
+        const data = await response.json()
 
-  contributors.value = res
+        return {
+          name: data.name || data.login,
+          role: developer.asof,
+          bio: data.bio,
+          github: data.html_url,
+          avatar: data.avatar_url,
+        }
+      })
+    )
+
+    contributors.value = res
+  } catch (err) {
+    console.warn(err)
+  } finally {
+    loading.value = false
+    loadingLabel.value = ''
+  }
 })
 // Feature data
 const features = [
@@ -110,6 +121,7 @@ const navigateTo = (path) => {
       </div>
     </nav>
 
+    <LoadingFeature :show="loading" :label="loadingLabel" />
     <!-- Hero Section -->
     <section class="pt-32 pb-20 px-4">
       <div class="max-w-7xl mx-auto text-center">
@@ -136,7 +148,7 @@ const navigateTo = (path) => {
     </section>
 
     <!-- Screenshot Slideshow Section (Reusable Component) -->
-    <SliderFeatures title="Fitur Aplikasi" subtitle="Semua yang kamu butuhkan ada di sini" :subjects="screenshots"
+    <SliderFeature title="Fitur Aplikasi" subtitle="Semua yang kamu butuhkan ada di sini" :subjects="screenshots"
       :autoPlayInterval="4000" />
 
     <!-- Features Section -->

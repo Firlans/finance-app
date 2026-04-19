@@ -2,13 +2,21 @@
 import router from '@/router'
 import { computed, onMounted, ref, watch } from 'vue'
 import dayjs from 'dayjs'
-import SwitcherFeatures from '@/components/features/SwitcherFeatures.vue'
+import LoadingFeature from '@/components/features/LoadingFeaures.vue'
+import SwitcherFeature from '@/components/features/SwitcherFeature.vue'
 /* ====== STATE ====== */
 const today = dayjs()
 const currentMonth = ref(today.month())
 const currentYear = ref(today.year())
 const token = localStorage.getItem('access_token')
 const URL = import.meta.env.VITE_BACKEND_SERVICE
+const loading = ref(false)
+const loadingLabel = ref('')
+
+const setLoading = (value, label = '') => {
+  loading.value = value
+  loadingLabel.value = label
+}
 // dummy data tampilan
 const budgetBulanan = ref(0)
 const currentBudgetId = ref(null)
@@ -116,6 +124,7 @@ function startEditBudget() {
 }
 
 async function saveBudget() {
+  setLoading(true, 'Saving budget...')
   try {
     if (!token) {
       router.push('/login')
@@ -166,6 +175,8 @@ async function saveBudget() {
     editingBudget.value = false
   } catch (err) {
     console.error(err.message)
+  } finally {
+    setLoading(false)
   }
 }
 
@@ -199,6 +210,7 @@ function closePengeluaranModal() {
 
 // Save pengeluaran (create or update)
 async function savePengeluaran() {
+  setLoading(true, 'Saving expenditure...')
   try {
     if (!token || !currentBudgetId.value) {
       throw new Error('Budget ID tidak ditemukan')
@@ -243,11 +255,14 @@ async function savePengeluaran() {
   } catch (err) {
     console.error(err.message)
     alert(err.message)
+  } finally {
+    setLoading(false)
   }
 }
 
 // Delete pengeluaran
 async function deletePengeluaran(id) {
+  setLoading(true, 'Deleting expenditure...')
   try {
     if (!confirm('Yakin ingin menghapus pengeluaran ini?')) return
 
@@ -284,6 +299,7 @@ const dateTo = computed(() =>
 )
 
 async function fetchBudgetBulanan() {
+  setLoading(true, 'Loading budgets...')
   try {
     if (!token) {
       console.warn('Token tidak ditemukan')
@@ -312,10 +328,13 @@ async function fetchBudgetBulanan() {
   } catch (err) {
     console.error(err)
     router.push('/login')
+  } finally {
+    setLoading(false)
   }
 }
 
 async function fetchPengeluaranHarian() {
+  setLoading(true, 'Loading expenditures...')
   try {
     if (!token || !currentBudgetId.value) {
       pengeluaranHarian.value = []
@@ -350,14 +369,18 @@ async function fetchPengeluaranHarian() {
   } catch (err) {
     console.error(err)
     pengeluaranHarian.value = []
+  } finally {
+    setLoading(false)
   }
 }
 </script>
 
 <template>
   <div class="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100">
+    <LoadingFeature :show="loading" :label="loadingLabel" />
     <!-- Top Bar -->
     <header class="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b">
+
       <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
         <div class="flex items-center gap-2">
           <span class="text-2xl">💰</span>
@@ -365,7 +388,7 @@ async function fetchPengeluaranHarian() {
         </div>
 
         <!-- Month Switcher -->
-        <SwitcherFeatures :label="monthLabel" @prev="prevMonth" @next="nextMonth">Periode</SwitcherFeatures>
+        <SwitcherFeature :label="monthLabel" @prev="prevMonth" @next="nextMonth">Periode</SwitcherFeature>
       </div>
     </header>
 
