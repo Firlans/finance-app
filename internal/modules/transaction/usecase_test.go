@@ -1,4 +1,4 @@
-package history_test
+package transaction_test
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/TubagusAldiMY/finance-tracker-app/backend/internal/modules/history"
+	"github.com/TubagusAldiMY/finance-tracker-app/backend/internal/modules/transaction"
 	"github.com/go-playground/validator/v10"
 	"github.com/shopspring/decimal"
 	"github.com/sirupsen/logrus"
@@ -22,30 +22,30 @@ type MockRepository struct {
 	mock.Mock
 }
 
-func (m *MockRepository) Create(ctx context.Context, h *history.History) error {
+func (m *MockRepository) Create(ctx context.Context, h *transaction.Transaction) error {
 	args := m.Called(ctx, h)
 	return args.Error(0)
 }
 
-func (m *MockRepository) Update(ctx context.Context, h *history.History) error {
+func (m *MockRepository) Update(ctx context.Context, h *transaction.Transaction) error {
 	args := m.Called(ctx, h)
 	return args.Error(0)
 }
 
-func (m *MockRepository) FindByID(ctx context.Context, id string) (*history.History, error) {
+func (m *MockRepository) FindByID(ctx context.Context, id string) (*transaction.Transaction, error) {
 	args := m.Called(ctx, id)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*history.History), args.Error(1)
+	return args.Get(0).(*transaction.Transaction), args.Error(1)
 }
 
-func (m *MockRepository) FindManyByAccountID(ctx context.Context, accountID string) ([]*history.History, error) {
+func (m *MockRepository) FindManyByAccountID(ctx context.Context, accountID string) ([]*transaction.Transaction, error) {
 	args := m.Called(ctx, accountID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).([]*history.History), args.Error(1)
+	return args.Get(0).([]*transaction.Transaction), args.Error(1)
 }
 
 func (m *MockRepository) IsAccountOwnedByUser(ctx context.Context, accountID string, userID string) (bool, error) {
@@ -53,8 +53,8 @@ func (m *MockRepository) IsAccountOwnedByUser(ctx context.Context, accountID str
 	return args.Bool(0), args.Error(1)
 }
 
-func (m *MockRepository) IsHistoryOwnedByUser(ctx context.Context, historyID string, userID string) (bool, error) {
-	args := m.Called(ctx, historyID, userID)
+func (m *MockRepository) IsTransactionOwnedByUser(ctx context.Context, transactionID string, userID string) (bool, error) {
+	args := m.Called(ctx, transactionID, userID)
 	return args.Bool(0), args.Error(1)
 }
 
@@ -62,7 +62,7 @@ func (m *MockRepository) IsHistoryOwnedByUser(ctx context.Context, historyID str
 // 2. HELPER SETUP
 // ==========================================
 
-func setupTest() (history.UseCase, *MockRepository) {
+func setupTest() (transaction.UseCase, *MockRepository) {
 	mockRepo := new(MockRepository)
 
 	// Logger discard agar output test bersih
@@ -71,7 +71,7 @@ func setupTest() (history.UseCase, *MockRepository) {
 
 	validate := validator.New()
 
-	useCase := history.NewUseCase(mockRepo, log, validate)
+	useCase := transaction.NewUseCase(mockRepo, log, validate)
 	return useCase, mockRepo
 }
 
@@ -85,7 +85,7 @@ func TestCreateHistory_Success(t *testing.T) {
 	userID := "550e8400-e29b-41d4-a716-446655440000"
 	accountID := "d3b07384-d9a3-432d-a410-6c6734105211"
 
-	req := &history.CreateHistoryRequest{
+	req := &transaction.CreateTransactionRequest{
 		AccountID: accountID,
 		Amount:    "50000",
 		Date:      "2025-01-02",
@@ -96,7 +96,7 @@ func TestCreateHistory_Success(t *testing.T) {
 
 	// 2. Expect Create: Success
 	expectedAmount := decimal.NewFromInt(50000)
-	mockRepo.On("Create", mock.Anything, mock.MatchedBy(func(h *history.History) bool {
+	mockRepo.On("Create", mock.Anything, mock.MatchedBy(func(h *transaction.Transaction) bool {
 		return h.AccountID == accountID &&
 			h.Amount.Equal(expectedAmount) &&
 			h.Date.Format("2006-01-02") == "2025-01-02" &&
@@ -104,7 +104,7 @@ func TestCreateHistory_Success(t *testing.T) {
 	})).Return(nil)
 
 	// Action
-	res, err := u.CreateHistory(context.Background(), userID, req)
+	res, err := u.CreateTransaction(context.Background(), userID, req)
 
 	// Assertions
 	assert.NoError(t, err)
@@ -120,7 +120,7 @@ func TestCreateHistory_Forbidden(t *testing.T) {
 	userID := "550e8400-e29b-41d4-a716-446655440000"
 	accountID := "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
 
-	req := &history.CreateHistoryRequest{
+	req := &transaction.CreateTransactionRequest{
 		AccountID: accountID,
 		Amount:    "50000",
 		Date:      "2025-01-02",
@@ -130,11 +130,11 @@ func TestCreateHistory_Forbidden(t *testing.T) {
 	mockRepo.On("IsAccountOwnedByUser", mock.Anything, accountID, userID).Return(false, nil)
 
 	// Action
-	res, err := u.CreateHistory(context.Background(), userID, req)
+	res, err := u.CreateTransaction(context.Background(), userID, req)
 
 	// Assertions
 	assert.Error(t, err)
-	assert.Equal(t, history.ErrForbidden, err)
+	assert.Equal(t, transaction.ErrForbidden, err)
 	assert.Nil(t, res)
 
 	mockRepo.AssertNotCalled(t, "Create")
@@ -145,7 +145,7 @@ func TestCreateHistory_AmountZero(t *testing.T) {
 	userID := "550e8400-e29b-41d4-a716-446655440000"
 	accountID := "d3b07384-d9a3-432d-a410-6c6734105211"
 
-	req := &history.CreateHistoryRequest{
+	req := &transaction.CreateTransactionRequest{
 		AccountID: accountID,
 		Amount:    "0",
 		Date:      "2025-01-02",
@@ -155,11 +155,11 @@ func TestCreateHistory_AmountZero(t *testing.T) {
 	mockRepo.On("IsAccountOwnedByUser", mock.Anything, accountID, userID).Return(true, nil)
 
 	// Action
-	res, err := u.CreateHistory(context.Background(), userID, req)
+	res, err := u.CreateTransaction(context.Background(), userID, req)
 
 	// Assertions
 	assert.Error(t, err)
-	assert.Equal(t, history.ErrAmountMustPositive, err)
+	assert.Equal(t, transaction.ErrAmountMustPositive, err)
 	assert.Nil(t, res)
 	mockRepo.AssertNotCalled(t, "Create")
 }
@@ -169,14 +169,14 @@ func TestCreateHistory_InvalidBudgetID(t *testing.T) {
 	userID := "550e8400-e29b-41d4-a716-446655440000"
 
 	// Invalid UUID format
-	req := &history.CreateHistoryRequest{
+	req := &transaction.CreateTransactionRequest{
 		AccountID: "invalid-uuid",
 		Amount:    "100",
 		Date:      "2025-01-02",
 	}
 
 	// Action
-	res, err := u.CreateHistory(context.Background(), userID, req)
+	res, err := u.CreateTransaction(context.Background(), userID, req)
 
 	// Assertions - Validator akan reject ini di struct validation
 	assert.Error(t, err)
@@ -189,7 +189,7 @@ func TestCreateHistory_OwnershipCheckError(t *testing.T) {
 	userID := "550e8400-e29b-41d4-a716-446655440000"
 	accountID := "d3b07384-d9a3-432d-a410-6c6734105211"
 
-	req := &history.CreateHistoryRequest{
+	req := &transaction.CreateTransactionRequest{
 		AccountID: accountID,
 		Amount:    "100",
 		Date:      "2025-01-01",
@@ -199,11 +199,11 @@ func TestCreateHistory_OwnershipCheckError(t *testing.T) {
 	mockRepo.On("IsAccountOwnedByUser", mock.Anything, accountID, userID).Return(false, errors.New("db error"))
 
 	// Action
-	res, err := u.CreateHistory(context.Background(), userID, req)
+	res, err := u.CreateTransaction(context.Background(), userID, req)
 
 	// Assertions
 	assert.Error(t, err)
-	assert.Equal(t, history.ErrInternalServer, err)
+	assert.Equal(t, transaction.ErrInternalServer, err)
 	assert.Nil(t, res)
 }
 
@@ -212,14 +212,14 @@ func TestCreateHistory_InvalidDateFormat(t *testing.T) {
 	userID := "550e8400-e29b-41d4-a716-446655440000"
 	accountID := "d3b07384-d9a3-432d-a410-6c6734105211"
 
-	req := &history.CreateHistoryRequest{
+	req := &transaction.CreateTransactionRequest{
 		AccountID: accountID,
 		Amount:    "100",
 		Date:      "01-01-2025", // Invalid format - will be caught by validator tag
 	}
 
 	// Action
-	res, err := u.CreateHistory(context.Background(), userID, req)
+	res, err := u.CreateTransaction(context.Background(), userID, req)
 
 	// Assertions
 	// Validator will catch this BEFORE any usecase logic
@@ -235,7 +235,7 @@ func TestCreateHistory_InvalidAmountFormat(t *testing.T) {
 	userID := "550e8400-e29b-41d4-a716-446655440000"
 	accountID := "d3b07384-d9a3-432d-a410-6c6734105211"
 
-	req := &history.CreateHistoryRequest{
+	req := &transaction.CreateTransactionRequest{
 		AccountID: accountID,
 		Amount:    "not-a-number",
 		Date:      "2025-01-01",
@@ -244,11 +244,11 @@ func TestCreateHistory_InvalidAmountFormat(t *testing.T) {
 	mockRepo.On("IsAccountOwnedByUser", mock.Anything, accountID, userID).Return(true, nil)
 
 	// Action
-	res, err := u.CreateHistory(context.Background(), userID, req)
+	res, err := u.CreateTransaction(context.Background(), userID, req)
 
 	// Assertions
 	assert.Error(t, err)
-	assert.Equal(t, history.ErrInvalidAmount, err)
+	assert.Equal(t, transaction.ErrInvalidAmount, err)
 	assert.Nil(t, res)
 	mockRepo.AssertNotCalled(t, "Create")
 }
@@ -258,7 +258,7 @@ func TestCreateHistory_NegativeAmount(t *testing.T) {
 	userID := "550e8400-e29b-41d4-a716-446655440000"
 	accountID := "d3b07384-d9a3-432d-a410-6c6734105211"
 
-	req := &history.CreateHistoryRequest{
+	req := &transaction.CreateTransactionRequest{
 		AccountID: accountID,
 		Amount:    "-100",
 		Date:      "2025-01-01",
@@ -267,11 +267,11 @@ func TestCreateHistory_NegativeAmount(t *testing.T) {
 	mockRepo.On("IsAccountOwnedByUser", mock.Anything, accountID, userID).Return(true, nil)
 
 	// Action
-	res, err := u.CreateHistory(context.Background(), userID, req)
+	res, err := u.CreateTransaction(context.Background(), userID, req)
 
 	// Assertions
 	assert.Error(t, err)
-	assert.Equal(t, history.ErrAmountMustPositive, err)
+	assert.Equal(t, transaction.ErrAmountMustPositive, err)
 	assert.Nil(t, res)
 	mockRepo.AssertNotCalled(t, "Create")
 }
@@ -285,9 +285,9 @@ func TestGetHistories_Success(t *testing.T) {
 	userID := "550e8400-e29b-41d4-a716-446655440000"
 	accountID := "d3b07384-d9a3-432d-a410-6c6734105211"
 
-	req := &history.ListHistoryRequest{AccountID: accountID}
+	req := &transaction.ListTransactionRequest{AccountID: accountID}
 
-	dummyHistories := []*history.History{
+	dummyHistories := []*transaction.Transaction{
 		{ID: "h1", Amount: decimal.NewFromInt(5000)},
 	}
 
@@ -298,7 +298,7 @@ func TestGetHistories_Success(t *testing.T) {
 	mockRepo.On("FindManyByAccountID", mock.Anything, accountID).Return(dummyHistories, nil)
 
 	// Action
-	res, err := u.GetHistories(context.Background(), userID, req)
+	res, err := u.GetTransactions(context.Background(), userID, req)
 
 	// Assertions
 	assert.NoError(t, err)
@@ -310,17 +310,17 @@ func TestGetHistories_Forbidden(t *testing.T) {
 	userID := "550e8400-e29b-41d4-a716-446655440000"
 	accountID := "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
 
-	req := &history.ListHistoryRequest{AccountID: accountID}
+	req := &transaction.ListTransactionRequest{AccountID: accountID}
 
 	// 1. Cek Milik User -> False
 	mockRepo.On("IsAccountOwnedByUser", mock.Anything, accountID, userID).Return(false, nil)
 
 	// Action
-	res, err := u.GetHistories(context.Background(), userID, req)
+	res, err := u.GetTransactions(context.Background(), userID, req)
 
 	// Assertions
 	assert.Error(t, err)
-	assert.Equal(t, history.ErrForbidden, err)
+	assert.Equal(t, transaction.ErrForbidden, err)
 	assert.Nil(t, res)
 
 	mockRepo.AssertNotCalled(t, "FindManyByAccountID")
@@ -331,14 +331,14 @@ func TestGetHistories_RepositoryError(t *testing.T) {
 	userID := "550e8400-e29b-41d4-a716-446655440000"
 	accountID := "d3b07384-d9a3-432d-a410-6c6734105211"
 
-	req := &history.ListHistoryRequest{AccountID: accountID}
+	req := &transaction.ListTransactionRequest{AccountID: accountID}
 
 	mockRepo.On("IsAccountOwnedByUser", mock.Anything, accountID, userID).Return(true, nil)
 	mockRepo.On("FindManyByAccountID", mock.Anything, accountID).Return(nil, errors.New("db fail"))
 
-	res, err := u.GetHistories(context.Background(), userID, req)
+	res, err := u.GetTransactions(context.Background(), userID, req)
 
 	assert.Error(t, err)
-	assert.Equal(t, history.ErrInternalServer, err)
+	assert.Equal(t, transaction.ErrInternalServer, err)
 	assert.Nil(t, res)
 }

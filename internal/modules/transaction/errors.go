@@ -1,13 +1,13 @@
-package history
+package transaction
 
 import "errors"
 
 // Domain Errors - Business Logic Level
 var (
-	ErrInternalServer  = errors.New("internal server error")
-	ErrForbidden       = errors.New("you don't have permission to access this resource")
-	ErrBudgetNotFound  = errors.New("budget not found")
-	ErrHistoryNotFound = errors.New("history not found")
+	ErrInternalServer      = errors.New("internal server error")
+	ErrForbidden           = errors.New("you don't have permission to access this resource")
+	ErrBudgetNotFound      = errors.New("budget not found")
+	ErrTransactionNotFound = errors.New("transaction not found")
 )
 
 // Validation Errors - Input Level

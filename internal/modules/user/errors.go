@@ -4,9 +4,11 @@ import "errors"
 
 // Domain Errors - Business Logic Level
 var (
-	ErrInternalServer     = errors.New("internal server error")
-	ErrInvalidCredentials = errors.New("invalid email or password")
-	ErrUserNotFound       = errors.New("user not found")
+	ErrInternalServer            = errors.New("internal server error")
+	ErrInvalidCredentials        = errors.New("invalid email or password")
+	ErrUserNotFound              = errors.New("user not found")
+	ErrInvalidCurrentPassword    = errors.New("invalid current password")
+	ErrInvalidPasswordResetToken = errors.New("invalid or expired reset token")
 )
 
 // Repository Errors - Data Layer

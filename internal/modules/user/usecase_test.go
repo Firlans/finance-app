@@ -25,6 +25,15 @@ type MockRepository struct {
 	mock.Mock
 }
 
+type MockMailer struct {
+	mock.Mock
+}
+
+func (m *MockMailer) SendPasswordResetEmail(ctx context.Context, to, resetURL string) error {
+	args := m.Called(ctx, to, resetURL)
+	return args.Error(0)
+}
+
 func (m *MockRepository) Save(ctx context.Context, u *user.User) error {
 	args := m.Called(ctx, u)
 	return args.Error(0)
@@ -47,13 +56,37 @@ func (m *MockRepository) FindByID(ctx context.Context, id string) (*user.User, e
 	return args.Get(0).(*user.User), args.Error(1)
 }
 
+func (m *MockRepository) Update(ctx context.Context, user *user.User) error {
+	args := m.Called(ctx, user)
+	return args.Error(0)
+}
+
+func (m *MockRepository) SavePasswordResetToken(ctx context.Context, token *user.PasswordResetToken) error {
+	args := m.Called(ctx, token)
+	return args.Error(0)
+}
+
+func (m *MockRepository) FindPasswordResetToken(ctx context.Context, token string) (*user.PasswordResetToken, error) {
+	args := m.Called(ctx, token)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*user.PasswordResetToken), args.Error(1)
+}
+
+func (m *MockRepository) DeletePasswordResetToken(ctx context.Context, token string) error {
+	args := m.Called(ctx, token)
+	return args.Error(0)
+}
+
 // ==========================================
 // 2. HELPER SETUP
 // ==========================================
 
 // setupTest mengembalikan Interface UseCase, MockRepo, dan Config untuk dimanipulasi
-func setupTest() (user.UseCase, *MockRepository, *viper.Viper) {
+func setupTest() (user.UseCase, *MockRepository, *MockMailer, *viper.Viper) {
 	mockRepo := new(MockRepository)
+	mockMailer := new(MockMailer)
 
 	// Logger buang ke tong sampah (supaya terminal bersih)
 	log := logrus.New()
@@ -66,9 +99,9 @@ func setupTest() (user.UseCase, *MockRepository, *viper.Viper) {
 	cfg.Set("jwt.secret", "secret_key_testing_123")
 	cfg.Set("jwt.ttl", "1h")
 
-	useCase := user.NewUseCase(mockRepo, log, validate, cfg)
+	useCase := user.NewUseCase(mockRepo, log, validate, cfg, mockMailer)
 
-	return useCase, mockRepo, cfg
+	return useCase, mockRepo, mockMailer, cfg
 }
 
 // ==========================================
@@ -76,7 +109,7 @@ func setupTest() (user.UseCase, *MockRepository, *viper.Viper) {
 // ==========================================
 
 func TestRegister_Success(t *testing.T) {
-	u, mockRepo, _ := setupTest()
+	u, mockRepo, _, _ := setupTest()
 
 	req := &user.RegisterRequest{
 		Username: "validuser",
@@ -102,7 +135,7 @@ func TestRegister_Success(t *testing.T) {
 }
 
 func TestRegister_ValidationError(t *testing.T) {
-	u, mockRepo, _ := setupTest()
+	u, mockRepo, _, _ := setupTest()
 
 	req := &user.RegisterRequest{
 		Username: "",                  // Invalid: Kosong
@@ -123,7 +156,7 @@ func TestRegister_ValidationError(t *testing.T) {
 }
 
 func TestRegister_DuplicateEmail(t *testing.T) {
-	u, mockRepo, _ := setupTest()
+	u, mockRepo, _, _ := setupTest()
 
 	req := &user.RegisterRequest{
 		Username: "newuser",
@@ -142,7 +175,7 @@ func TestRegister_DuplicateEmail(t *testing.T) {
 }
 
 func TestRegister_DuplicateUsername(t *testing.T) {
-	u, mockRepo, _ := setupTest()
+	u, mockRepo, _, _ := setupTest()
 
 	req := &user.RegisterRequest{
 		Username: "takenuser",
@@ -161,7 +194,7 @@ func TestRegister_DuplicateUsername(t *testing.T) {
 }
 
 func TestRegister_RepositoryError(t *testing.T) {
-	u, mockRepo, _ := setupTest()
+	u, mockRepo, _, _ := setupTest()
 
 	req := &user.RegisterRequest{
 		Username: "user",
@@ -185,7 +218,7 @@ func TestRegister_RepositoryError(t *testing.T) {
 // ==========================================
 
 func TestLogin_Success(t *testing.T) {
-	u, mockRepo, _ := setupTest()
+	u, mockRepo, _, _ := setupTest()
 
 	// Siapkan password hash yang valid
 	hashedPwd, _ := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
@@ -218,7 +251,7 @@ func TestLogin_Success(t *testing.T) {
 }
 
 func TestLogin_UserNotFound(t *testing.T) {
-	u, mockRepo, _ := setupTest()
+	u, mockRepo, _, _ := setupTest()
 
 	req := &user.LoginRequest{
 		Email:    "ghost@example.com",
@@ -238,7 +271,7 @@ func TestLogin_UserNotFound(t *testing.T) {
 }
 
 func TestLogin_WrongPassword(t *testing.T) {
-	u, mockRepo, _ := setupTest()
+	u, mockRepo, _, _ := setupTest()
 
 	hashedPwd, _ := bcrypt.GenerateFromPassword([]byte("realpassword"), bcrypt.DefaultCost)
 	dummyUser := &user.User{
@@ -262,7 +295,7 @@ func TestLogin_WrongPassword(t *testing.T) {
 }
 
 func TestLogin_RepositoryError(t *testing.T) {
-	u, mockRepo, _ := setupTest()
+	u, mockRepo, _, _ := setupTest()
 
 	req := &user.LoginRequest{
 		Email:    "error@example.com",
@@ -279,6 +312,84 @@ func TestLogin_RepositoryError(t *testing.T) {
 	assert.Nil(t, resp)
 }
 
+func TestForgetPassword_ExistingEmail(t *testing.T) {
+	u, mockRepo, mockMailer, _ := setupTest()
+
+	req := &user.ForgetPasswordRequest{
+		Email: "existing@example.com",
+	}
+
+	dummyUser := &user.User{ID: "user-123", Email: req.Email}
+
+	mockRepo.On("FindByEmail", mock.Anything, req.Email).Return(dummyUser, nil)
+	mockRepo.On("SavePasswordResetToken", mock.Anything, mock.AnythingOfType("*user.PasswordResetToken")).Return(nil)
+	mockMailer.On("SendPasswordResetEmail", mock.Anything, req.Email, mock.AnythingOfType("string")).Return(nil)
+
+	err := u.ForgetPassword(context.Background(), req)
+
+	assert.NoError(t, err)
+	mockRepo.AssertExpectations(t)
+	mockMailer.AssertExpectations(t)
+}
+
+func TestForgetPassword_UnknownEmail(t *testing.T) {
+	u, mockRepo, _, _ := setupTest()
+
+	req := &user.ForgetPasswordRequest{Email: "unknown@example.com"}
+
+	mockRepo.On("FindByEmail", mock.Anything, req.Email).Return(nil, nil)
+
+	err := u.ForgetPassword(context.Background(), req)
+
+	assert.NoError(t, err)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestResetPasswordWithToken_Success(t *testing.T) {
+	u, mockRepo, _, _ := setupTest()
+
+	req := &user.ResetPasswordWithTokenRequest{
+		Token:           "550e8400-e29b-41d4-a716-446655440000",
+		NewPassword:     "newpassword123",
+		ConfirmPassword: "newpassword123",
+	}
+
+	resetToken := &user.PasswordResetToken{
+		Token:     req.Token,
+		UserID:    "user-123",
+		ExpiresAt: time.Now().Add(10 * time.Minute),
+	}
+
+	dummyUser := &user.User{ID: resetToken.UserID, Email: "existing@example.com", Password: "oldhash"}
+
+	mockRepo.On("FindPasswordResetToken", mock.Anything, req.Token).Return(resetToken, nil)
+	mockRepo.On("FindByID", mock.Anything, resetToken.UserID).Return(dummyUser, nil)
+	mockRepo.On("Update", mock.Anything, mock.AnythingOfType("*user.User")).Return(nil)
+	mockRepo.On("DeletePasswordResetToken", mock.Anything, req.Token).Return(nil)
+
+	err := u.ResetPasswordWithToken(context.Background(), req)
+
+	assert.NoError(t, err)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestResetPasswordWithToken_InvalidToken(t *testing.T) {
+	u, mockRepo, _, _ := setupTest()
+
+	req := &user.ResetPasswordWithTokenRequest{
+		Token:           "550e8400-e29b-41d4-a716-446655440000",
+		NewPassword:     "newpassword123",
+		ConfirmPassword: "newpassword123",
+	}
+
+	mockRepo.On("FindPasswordResetToken", mock.Anything, req.Token).Return(nil, nil)
+
+	err := u.ResetPasswordWithToken(context.Background(), req)
+
+	assert.Error(t, err)
+	assert.Equal(t, user.ErrInvalidPasswordResetToken, err)
+}
+
 func TestLogin_MissingJWTSecret(t *testing.T) {
 	// Setup Manual Khusus case ini (karena butuh config rusak)
 	mockRepo := new(MockRepository)
@@ -289,8 +400,9 @@ func TestLogin_MissingJWTSecret(t *testing.T) {
 	// CONFIG RUSAK (Secret Kosong)
 	cfg := viper.New()
 	cfg.Set("jwt.secret", "")
+	mockMailer := new(MockMailer)
 
-	u := user.NewUseCase(mockRepo, log, validate, cfg)
+	u := user.NewUseCase(mockRepo, log, validate, cfg, mockMailer)
 
 	hashedPwd, _ := bcrypt.GenerateFromPassword([]byte("pass"), bcrypt.DefaultCost)
 	dummyUser := &user.User{
@@ -316,7 +428,7 @@ func TestLogin_MissingJWTSecret(t *testing.T) {
 // ==========================================
 
 func TestGetMe_Success(t *testing.T) {
-	u, mockRepo, _ := setupTest()
+	u, mockRepo, _, _ := setupTest()
 
 	userID := "user-uuid-123"
 	dummyUser := &user.User{
@@ -340,7 +452,7 @@ func TestGetMe_Success(t *testing.T) {
 }
 
 func TestGetMe_UserNotFound(t *testing.T) {
-	u, mockRepo, _ := setupTest()
+	u, mockRepo, _, _ := setupTest()
 
 	userID := "ghost-uuid"
 
@@ -357,7 +469,7 @@ func TestGetMe_UserNotFound(t *testing.T) {
 }
 
 func TestGetMe_RepositoryError(t *testing.T) {
-	u, mockRepo, _ := setupTest()
+	u, mockRepo, _, _ := setupTest()
 
 	userID := "error-uuid"
 

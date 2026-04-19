@@ -1,4 +1,4 @@
-package history
+package transaction
 
 import (
 	"context"
@@ -18,9 +18,9 @@ var (
 )
 
 type UseCase interface {
-	CreateHistory(ctx context.Context, userID string, req *CreateHistoryRequest) (*History, error)
-	UpdateHistory(ctx context.Context, userID string, historyID string, req *UpdateHistoryRequest) (*History, error)
-	GetHistories(ctx context.Context, userID string, req *ListHistoryRequest) ([]*History, error)
+	CreateTransaction(ctx context.Context, userID string, req *CreateTransactionRequest) (*Transaction, error)
+	UpdateTransaction(ctx context.Context, userID string, transactionID string, req *UpdateTransactionRequest) (*Transaction, error)
+	GetTransactions(ctx context.Context, userID string, req *ListTransactionRequest) ([]*Transaction, error)
 }
 
 type useCase struct {
@@ -33,7 +33,7 @@ func NewUseCase(repo Repository, log *logrus.Logger, validate *validator.Validat
 	return &useCase{repo: repo, log: log, validate: validate}
 }
 
-func (u useCase) CreateHistory(ctx context.Context, userID string, req *CreateHistoryRequest) (*History, error) {
+func (u useCase) CreateTransaction(ctx context.Context, userID string, req *CreateTransactionRequest) (*Transaction, error) {
 	// 1. Struct validation
 	if err := u.validate.Struct(req); err != nil {
 		return nil, err
@@ -83,7 +83,7 @@ func (u useCase) CreateHistory(ctx context.Context, userID string, req *CreateHi
 	}
 
 	// 6. Create entity
-	history := &History{
+	transaction := &Transaction{
 		ID:        uuid.New().String(),
 		UserID:    userID,
 		AccountID: req.AccountID,
@@ -93,15 +93,15 @@ func (u useCase) CreateHistory(ctx context.Context, userID string, req *CreateHi
 	}
 
 	// 7. Save to DB
-	if err := u.repo.Create(ctx, history); err != nil {
-		u.log.WithError(err).Error("Failed to create history")
+	if err := u.repo.Create(ctx, transaction); err != nil {
+		u.log.WithError(err).Error("Failed to create transaction")
 		return nil, ErrInternalServer
 	}
 
-	return history, nil
+	return transaction, nil
 }
 
-func (u useCase) UpdateHistory(ctx context.Context, userID string, historyID string, req *UpdateHistoryRequest) (*History, error) {
+func (u useCase) UpdateTransaction(ctx context.Context, userID string, transactionID string, req *UpdateTransactionRequest) (*Transaction, error) {
 	// 1. Validasi input
 	if err := u.validate.Struct(req); err != nil {
 		return nil, err
@@ -113,12 +113,12 @@ func (u useCase) UpdateHistory(ctx context.Context, userID string, historyID str
 		return nil, ErrInternalServer
 	}
 
-	if err := validators.ValidateUUID(historyID); err != nil {
+	if err := validators.ValidateUUID(transactionID); err != nil {
 		return nil, validators.ErrInvalidUUID
 	}
 
 	// 3. Cek ownership melalui join table
-	isOwned, err := u.repo.IsHistoryOwnedByUser(ctx, historyID, userID)
+	isOwned, err := u.repo.IsTransactionOwnedByUser(ctx, transactionID, userID)
 	if err != nil {
 		u.log.WithError(err).Error("Failed to check history ownership")
 		return nil, ErrInternalServer
@@ -126,21 +126,21 @@ func (u useCase) UpdateHistory(ctx context.Context, userID string, historyID str
 
 	if !isOwned {
 		u.log.WithFields(logrus.Fields{
-			"user_id":    userID,
-			"history_id": historyID,
+			"user_id":        userID,
+			"transaction_id": transactionID,
 		}).Warn("Forbidden history access attempt")
 		return nil, ErrForbidden
 	}
 
 	// 4. Get existing history
-	existingHistory, err := u.repo.FindByID(ctx, historyID)
+	existingTransaction, err := u.repo.FindByID(ctx, transactionID)
 	if err != nil {
 		u.log.WithError(err).Error("Failed to find history")
 		return nil, ErrInternalServer
 	}
 
-	if existingHistory == nil {
-		return nil, ErrHistoryNotFound
+	if existingTransaction == nil {
+		return nil, ErrTransactionNotFound
 	}
 
 	// 5. Parse dan validasi data baru
@@ -161,19 +161,19 @@ func (u useCase) UpdateHistory(ctx context.Context, userID string, historyID str
 	}
 
 	// 6. Update data
-	existingHistory.Amount = decAmount
-	existingHistory.Date = parsedDate
-	existingHistory.UpdatedAt = time.Now()
+	existingTransaction.Amount = decAmount
+	existingTransaction.Date = parsedDate
+	existingTransaction.UpdatedAt = time.Now()
 
-	if err := u.repo.Update(ctx, existingHistory); err != nil {
-		u.log.WithError(err).Error("Failed to update history")
+	if err := u.repo.Update(ctx, existingTransaction); err != nil {
+		u.log.WithError(err).Error("Failed to update transaction")
 		return nil, ErrInternalServer
 	}
 
-	return existingHistory, nil
+	return existingTransaction, nil
 }
 
-func (u useCase) GetHistories(ctx context.Context, userID string, req *ListHistoryRequest) ([]*History, error) {
+func (u useCase) GetTransactions(ctx context.Context, userID string, req *ListTransactionRequest) ([]*Transaction, error) {
 	// 1. Validate struct
 	if err := u.validate.Struct(req); err != nil {
 		return nil, err
@@ -205,11 +205,11 @@ func (u useCase) GetHistories(ctx context.Context, userID string, req *ListHisto
 	}
 
 	// 4. Fetch histories
-	histories, err := u.repo.FindManyByAccountID(ctx, req.AccountID)
+	transactions, err := u.repo.FindManyByAccountID(ctx, req.AccountID)
 	if err != nil {
 		u.log.WithError(err).Error("Failed to fetch histories")
 		return nil, ErrInternalServer
 	}
 
-	return histories, nil
+	return transactions, nil
 }

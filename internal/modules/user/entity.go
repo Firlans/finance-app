@@ -42,3 +42,33 @@ type LoginResponse struct {
 	TokenType   string       `json:"token_type" example:"Bearer"`
 	User        UserResponse `json:"user"`
 }
+
+type ResetPasswordRequest struct {
+	CurrentPassword string `json:"current_password" validate:"required" example:"RahasiaNegara123!"`
+	NewPassword     string `json:"new_password" validate:"required,min=6" example:"RahasiaNegara456!"`
+}
+
+type ResetPasswordResponse struct {
+	Message string `json:"message" example:"Password reset successful"`
+}
+
+type ResetPasswordWithTokenRequest struct {
+	Token           string `json:"token" validate:"required,uuid" example:"550e8400-e29b-41d4-a716-446655440000"`
+	NewPassword     string `json:"new_password" validate:"required,min=6" example:"RahasiaNegara456!"`
+	ConfirmPassword string `json:"confirm_password" validate:"required,eqfield=NewPassword" example:"RahasiaNegara456!"`
+}
+
+type PasswordResetToken struct {
+	Token     string    `json:"token"`
+	UserID    string    `json:"user_id"`
+	ExpiresAt time.Time `json:"expires_at"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type ForgetPasswordRequest struct {
+	Email string `json:"email" validate:"required,email" example:"tubagus@example.com"`
+}
+
+type ForgetPasswordResponse struct {
+	Message string `json:"message" example:"Password reset link sent to your email"`
+}

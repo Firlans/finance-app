@@ -3,6 +3,8 @@ package user
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -13,10 +15,17 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+type Mailer interface {
+	SendPasswordResetEmail(ctx context.Context, to, resetURL string) error
+}
+
 type UseCase interface {
 	Register(ctx context.Context, req *RegisterRequest) (*RegisterResponse, error)
 	Login(ctx context.Context, req *LoginRequest) (*LoginResponse, error)
 	GetMe(ctx context.Context, userID string) (*UserResponse, error)
+	ResetPassword(ctx context.Context, userID string, req *ResetPasswordRequest) error
+	ForgetPassword(ctx context.Context, req *ForgetPasswordRequest) error
+	ResetPasswordWithToken(ctx context.Context, req *ResetPasswordWithTokenRequest) error
 }
 
 type useCase struct {
@@ -24,14 +33,16 @@ type useCase struct {
 	log      *logrus.Logger
 	validate *validator.Validate
 	cfg      *viper.Viper
+	mailer   Mailer
 }
 
-func NewUseCase(repo Repository, log *logrus.Logger, validate *validator.Validate, cfg *viper.Viper) UseCase {
+func NewUseCase(repo Repository, log *logrus.Logger, validate *validator.Validate, cfg *viper.Viper, mailer Mailer) UseCase {
 	return &useCase{
 		repo:     repo,
 		log:      log,
 		validate: validate,
 		cfg:      cfg,
+		mailer:   mailer,
 	}
 }
 
@@ -163,4 +174,135 @@ func (u *useCase) GetMe(ctx context.Context, userID string) (*UserResponse, erro
 		Email:     user.Email,
 		CreatedAt: user.CreatedAt,
 	}, nil
+}
+
+func (u *useCase) ResetPassword(ctx context.Context, userID string, req *ResetPasswordRequest) error {
+	// 1. Validasi Input
+	if err := u.validate.Struct(req); err != nil {
+		return err
+	}
+
+	// 2. Cari User by ID
+	user, err := u.repo.FindByID(ctx, userID)
+	if err != nil {
+		u.log.WithError(err).Error("ResetPassword: failed to find user")
+		return ErrInternalServer
+	}
+	if user == nil {
+		return ErrUserNotFound
+	}
+
+	// 3. Verifikasi Current Password
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.CurrentPassword))
+	if err != nil {
+		u.log.Warnf("ResetPassword failed: invalid current password for user ID %s", userID)
+		return ErrInvalidCurrentPassword
+	}
+
+	// 4. Hash New Password
+	hashed, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		u.log.Error("Failed to hash new password:", err)
+		return ErrInternalServer
+	}
+
+	// 5. Update Password di DB
+	user.Password = string(hashed)
+	if err := u.repo.Update(ctx, user); err != nil {
+		u.log.WithError(err).Error("Failed to update user password")
+		return ErrInternalServer
+	}
+
+	return nil
+}
+
+func (u *useCase) ForgetPassword(ctx context.Context, req *ForgetPasswordRequest) error {
+	if err := u.validate.Struct(req); err != nil {
+		return err
+	}
+
+	user, err := u.repo.FindByEmail(ctx, req.Email)
+	if err != nil {
+		u.log.WithError(err).Error("ForgetPassword: unable to find user by email")
+		return ErrInternalServer
+	}
+
+	if user == nil {
+		u.log.WithError(err).Error("ForgetPassword: unable to find user by email")
+		return ErrUserNotFound
+	}
+	fmt.Println("masuk")
+
+	token := uuid.New().String()
+	expiresAt := time.Now().Add(1 * time.Hour)
+
+	passwordResetToken := &PasswordResetToken{
+		Token:     token,
+		UserID:    user.ID,
+		ExpiresAt: expiresAt,
+		CreatedAt: time.Now(),
+	}
+
+	if err := u.repo.SavePasswordResetToken(ctx, passwordResetToken); err != nil {
+		u.log.WithError(err).Error("ForgetPassword: unable to save password reset token")
+		return ErrInternalServer
+	}
+
+	resetURL := u.cfg.GetString("mail.reset_password_url")
+	if resetURL == "" {
+		appURL := strings.TrimRight(u.cfg.GetString("app.url"), "/")
+		resetURL = fmt.Sprintf("%s/api/users/reset-password?token=%s", appURL, token)
+	} else {
+		resetURL = fmt.Sprintf("%s?token=%s", strings.TrimRight(resetURL, "/"), token)
+	}
+	if err := u.mailer.SendPasswordResetEmail(ctx, user.Email, resetURL); err != nil {
+		u.log.WithError(err).Error("ForgetPassword: unable to send reset email")
+		return ErrInternalServer
+	}
+
+	return nil
+}
+
+func (u *useCase) ResetPasswordWithToken(ctx context.Context, req *ResetPasswordWithTokenRequest) error {
+	if err := u.validate.Struct(req); err != nil {
+		return err
+	}
+
+	passwordResetToken, err := u.repo.FindPasswordResetToken(ctx, req.Token)
+	if err != nil {
+		u.log.WithError(err).Error("ResetPasswordWithToken: failed to load token")
+		return ErrInternalServer
+	}
+
+	if passwordResetToken == nil || time.Now().After(passwordResetToken.ExpiresAt) {
+		return ErrInvalidPasswordResetToken
+	}
+
+	user, err := u.repo.FindByID(ctx, passwordResetToken.UserID)
+	if err != nil {
+		u.log.WithError(err).Error("ResetPasswordWithToken: failed to find user")
+		return ErrInternalServer
+	}
+
+	if user == nil {
+		return ErrUserNotFound
+	}
+
+	hashed, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		u.log.Error("Failed to hash new password:", err)
+		return ErrInternalServer
+	}
+
+	user.Password = string(hashed)
+	if err := u.repo.Update(ctx, user); err != nil {
+		u.log.WithError(err).Error("ResetPasswordWithToken: failed to update user password")
+		return ErrInternalServer
+	}
+
+	if err := u.repo.DeletePasswordResetToken(ctx, req.Token); err != nil {
+		u.log.WithError(err).Warn("ResetPasswordWithToken: failed to delete token")
+	}
+
+	return nil
 }

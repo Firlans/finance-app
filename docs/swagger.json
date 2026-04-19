@@ -95,7 +95,8 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/budget.CreateBudgetRequest"
+                                            "$ref": "#/definitions/budget.CreateBudgetRequest"
+                            },
                         }
                     }
                 ],
@@ -197,14 +198,14 @@
                 }
             }
         },
-        "/histories": {
+        "/transactions": {
             "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get list of expenses for a specific budget",
+                "description": "Get list of expenses for a specific account",
                 "consumes": [
                     "application/json"
                 ],
@@ -212,14 +213,14 @@
                     "application/json"
                 ],
                 "tags": [
-                    "History"
+                    "Transaction"
                 ],
-                "summary": "List Transaction Histories",
+                "summary": "List Transactions",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Budget ID (UUID)",
-                        "name": "budget_id",
+                        "description": "Account ID (UUID)",
+                        "name": "account_id",
                         "in": "query",
                         "required": true
                     }
@@ -230,7 +231,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/history.History"
+                                "$ref": "#/definitions/transaction.Transaction"
                             }
                         }
                     },
@@ -263,7 +264,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Record a new expense for a specific budget",
+                "description": "Record a new expense for a specific account",
                 "consumes": [
                     "application/json"
                 ],
@@ -271,17 +272,17 @@
                     "application/json"
                 ],
                 "tags": [
-                    "History"
+                    "Transaction"
                 ],
-                "summary": "Create Transaction History",
+                "summary": "Create Transaction",
                 "parameters": [
                     {
-                        "description": "History Payload",
+                        "description": "Transaction Payload",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/history.CreateHistoryRequest"
+                            "$ref": "#/definitions/transaction.CreateTransactionRequest"
                         }
                     }
                 ],
@@ -289,7 +290,7 @@
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/history.History"
+                            "$ref": "#/definitions/transaction.Transaction"
                         }
                     },
                     "400": {
@@ -625,7 +626,7 @@
                 }
             }
         },
-        "history.CreateHistoryRequest": {
+        "transaction.CreateTransactionRequest": {
             "type": "object",
             "required": [
                 "amount",
@@ -647,7 +648,7 @@
                 }
             }
         },
-        "history.History": {
+        "transaction.Transaction": {
             "type": "object",
             "properties": {
                 "amount": {
@@ -668,7 +669,7 @@
                 }
             }
         },
-        "history.UpdateHistoryRequest": {
+        "transaction.UpdateTransactionRequest": {
             "type": "object",
             "required": [
                 "amount",

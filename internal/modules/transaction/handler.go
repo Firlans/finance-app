@@ -1,4 +1,4 @@
-package history
+package transaction
 
 import "github.com/gofiber/fiber/v2"
 
@@ -10,74 +10,72 @@ func NewHandler(useCase UseCase) *Handler {
 	return &Handler{useCase: useCase}
 }
 
-// CreateHistory godoc
-// @Summary      Create Transaction History
-// @Description  Record a new expense for a specific budget
-// @Tags         History
+// CreateTransaction godoc
+// @Summary      Create Transaction
+// @Description  Record a new expense for a specific account
+// @Tags         Transaction
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Param        request body CreateHistoryRequest true "History Payload"
-// @Success      201  {object}  History
+// @Param        request body CreateTransactionRequest true "Transaction Payload"
+// @Success      201  {object}  Transaction
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      403  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
-// @Router       /histories [post]
+// @Router       /transactions [post]
 func (h *Handler) Create(c *fiber.Ctx) error {
 	userID, ok := c.Locals("user_id").(string)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
 	}
 
-	var req CreateHistoryRequest
+	var req CreateTransactionRequest
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
 
-	history, err := h.useCase.CreateHistory(c.Context(), userID, &req)
+	transaction, err := h.useCase.CreateTransaction(c.Context(), userID, &req)
 	if err != nil {
 		if err == ErrForbidden {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": err.Error()})
 		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"data": history})
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"data": transaction})
 }
 
-// UpdateHistory godoc
-// @Summary      Update Transaction History
+// UpdateTransaction godoc
+// @Summary      Update Transaction
 // @Description  Update existing expense record
-// @Tags         History
+// @Tags         Transaction
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Param        id path string true "History ID"
-// @Param        request body UpdateHistoryRequest true "Update Payload"
-// @Success      200  {object}  History
+// @Param        id path string true "Transaction ID"
+// @Param        request body UpdateTransactionRequest true "Update Payload"
+// @Success      200  {object}  Transaction
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      403  {object}  map[string]interface{}
 // @Failure      404  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
-// @Router       /histories/{id} [put]
+// @Router       /transactions/{id} [put]
 func (h *Handler) Update(c *fiber.Ctx) error {
 	userID, ok := c.Locals("user_id").(string)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
 	}
 
-	historyID := c.Params("id")
-	if historyID == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "History ID required"})
+	transactionID := c.Params("id")
+	if transactionID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Transaction ID required"})
 	}
-
-	var req UpdateHistoryRequest
+	var req UpdateTransactionRequest
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
 	}
-
-	history, err := h.useCase.UpdateHistory(c.Context(), userID, historyID, &req)
+	transaction, err := h.useCase.UpdateTransaction(c.Context(), userID, transactionID, &req)
 	if err != nil {
-		if err == ErrHistoryNotFound {
+		if err == ErrTransactionNotFound {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
 		}
 		if err == ErrForbidden {
@@ -86,33 +84,32 @@ func (h *Handler) Update(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{"data": history})
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"data": transaction})
 }
 
-// ListHistory godoc
-// @Summary      List Transaction Histories
-// @Description  Get list of expenses for a specific budget
-// @Tags         History
+// ListTransactions godoc
+// @Summary      List Transactions
+// @Description  Get list of expenses for a specific account
+// @Tags         Transaction
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
 // @Param        account_id query string true "Account ID (UUID)"
-// @Success      200  {object}  []History
+// @Success      200  {object}  []Transaction
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      403  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
-// @Router       /histories [get]
+// @Router       /transactions [get]
 func (h *Handler) List(c *fiber.Ctx) error {
 	userID, ok := c.Locals("user_id").(string)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
 	}
 
-	req := &ListHistoryRequest{
+	req := &ListTransactionRequest{
 		AccountID: c.Query("account_id"),
 	}
-
-	histories, err := h.useCase.GetHistories(c.Context(), userID, req)
+	transactions, err := h.useCase.GetTransactions(c.Context(), userID, req)
 	if err != nil {
 		if err == ErrForbidden {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": err.Error()})
@@ -120,15 +117,15 @@ func (h *Handler) List(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	if histories == nil {
-		histories = []*History{}
+	if transactions == nil {
+		transactions = []*Transaction{}
 	}
 
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{"data": histories})
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"data": transactions})
 }
 
 func (h *Handler) RegisterRoutes(app *fiber.App, authMiddleware fiber.Handler) {
-	api := app.Group("/api/histories", authMiddleware)
+	api := app.Group("/api/transactions", authMiddleware)
 
 	api.Post("/", h.Create)
 	api.Put("/:id", h.Update)

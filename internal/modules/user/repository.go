@@ -14,6 +14,10 @@ type Repository interface {
 	Save(ctx context.Context, user *User) error
 	FindByEmail(ctx context.Context, email string) (*User, error)
 	FindByID(ctx context.Context, id string) (*User, error)
+	Update(ctx context.Context, user *User) error
+	SavePasswordResetToken(ctx context.Context, token *PasswordResetToken) error
+	FindPasswordResetToken(ctx context.Context, token string) (*PasswordResetToken, error)
+	DeletePasswordResetToken(ctx context.Context, token string) error
 }
 
 type repository struct {
@@ -80,4 +84,46 @@ func (r *repository) FindByID(ctx context.Context, id string) (*User, error) {
 		return nil, err
 	}
 	return &user, nil
+}
+
+func (r *repository) Update(ctx context.Context, user *User) error {
+	query := `UPDATE users SET password = $1 WHERE id = $2`
+	_, err := r.db.Exec(ctx, query, user.Password, user.ID)
+	return err
+}
+
+func (r *repository) SavePasswordResetToken(ctx context.Context, token *PasswordResetToken) error {
+	query := `
+		INSERT INTO password_reset_tokens (token, user_id, expires_at, created_at)
+		VALUES ($1, $2, $3, $4)
+	`
+	_, err := r.db.Exec(ctx, query, token.Token, token.UserID, token.ExpiresAt, token.CreatedAt)
+	return err
+}
+
+func (r *repository) FindPasswordResetToken(ctx context.Context, token string) (*PasswordResetToken, error) {
+	query := `SELECT token, user_id, expires_at, created_at FROM password_reset_tokens WHERE token = $1`
+
+	var prt PasswordResetToken
+	err := r.db.QueryRow(ctx, query, token).Scan(
+		&prt.Token,
+		&prt.UserID,
+		&prt.ExpiresAt,
+		&prt.CreatedAt,
+	)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &prt, nil
+}
+
+func (r *repository) DeletePasswordResetToken(ctx context.Context, token string) error {
+	query := `DELETE FROM password_reset_tokens WHERE token = $1`
+	_, err := r.db.Exec(ctx, query, token)
+	return err
 }

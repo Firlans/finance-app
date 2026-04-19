@@ -5,7 +5,7 @@ import (
 
 	"github.com/TubagusAldiMY/finance-tracker-app/backend/internal/infra/middleware"
 	"github.com/TubagusAldiMY/finance-tracker-app/backend/internal/modules/budget"
-	"github.com/TubagusAldiMY/finance-tracker-app/backend/internal/modules/history"
+	"github.com/TubagusAldiMY/finance-tracker-app/backend/internal/modules/transaction"
 	"github.com/TubagusAldiMY/finance-tracker-app/backend/internal/modules/user"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 
@@ -89,7 +89,8 @@ func Bootstrap(config *BootstrapConfig) {
 
 	// User Module
 	userRepo := user.NewRepository(config.DB)
-	userUseCase := user.NewUseCase(userRepo, config.Log, config.Validate, config.Config)
+	mailSender := NewSMTPMailer(config.Config, config.Log)
+	userUseCase := user.NewUseCase(userRepo, config.Log, config.Validate, config.Config, mailSender)
 	userHandler := user.NewHandler(userUseCase)
 	userHandler.RegisterRoutes(config.App, authMiddleware, authRateLimiter)
 
@@ -99,11 +100,11 @@ func Bootstrap(config *BootstrapConfig) {
 	budgetHandler := budget.NewHandler(budgetUseCase)
 	budgetHandler.RegisterRoutes(config.App, authMiddleware)
 
-	// History Module
-	historyRepo := history.NewRepository(config.DB)
-	historyUseCase := history.NewUseCase(historyRepo, config.Log, config.Validate)
-	historyHandler := history.NewHandler(historyUseCase)
-	historyHandler.RegisterRoutes(config.App, authMiddleware)
+	// Transaction Module (renamed from History)
+	transactionRepo := transaction.NewRepository(config.DB)
+	transactionUseCase := transaction.NewUseCase(transactionRepo, config.Log, config.Validate)
+	transactionHandler := transaction.NewHandler(transactionUseCase)
+	transactionHandler.RegisterRoutes(config.App, authMiddleware)
 
 	// ========================================
 	// SWAGGER DOCUMENTATION (Dev/Staging Only)

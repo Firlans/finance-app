@@ -39,7 +39,7 @@ definitions:
     - budget
     - date
     type: object
-  history.CreateHistoryRequest:
+  transaction.CreateTransactionRequest:
     properties:
       amount:
         example: "50000"
@@ -55,7 +55,7 @@ definitions:
     - budget_id
     - date
     type: object
-  history.History:
+  transaction.Transaction:
     properties:
       amount:
         example: 300000
@@ -70,7 +70,7 @@ definitions:
         example: 550e8400-e29b-41d4-a716-446655440000
         type: string
     type: object
-  history.UpdateHistoryRequest:
+  transaction.UpdateTransactionRequest:
     properties:
       amount:
         example: "75000"
@@ -284,15 +284,15 @@ paths:
       summary: Update Monthly Budget
       tags:
       - Budget
-  /histories:
+  /transactions:
     get:
       consumes:
       - application/json
-      description: Get list of expenses for a specific budget
+      description: Get list of expenses for a specific account
       parameters:
-      - description: Budget ID (UUID)
+      - description: Account ID (UUID)
         in: query
-        name: budget_id
+        name: account_id
         required: true
         type: string
       produces:
@@ -302,7 +302,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/history.History'
+              $ref: '#/definitions/transaction.Transaction'
             type: array
         "400":
           description: Bad Request
@@ -321,27 +321,27 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: List Transaction Histories
+      summary: List Transactions
       tags:
-      - History
+      - Transaction
     post:
       consumes:
       - application/json
-      description: Record a new expense for a specific budget
+      description: Record a new expense for a specific account
       parameters:
-      - description: History Payload
+      - description: Transaction Payload
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/history.CreateHistoryRequest'
+          $ref: '#/definitions/transaction.CreateTransactionRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/history.History'
+            $ref: '#/definitions/transaction.Transaction'
         "400":
           description: Bad Request
           schema:
@@ -359,16 +359,16 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Create Transaction History
+      summary: Create Transaction
       tags:
-      - History
-  /histories/{id}:
+      - Transaction
+  /transactions/{id}:
     put:
       consumes:
       - application/json
       description: Update existing expense record
       parameters:
-      - description: History ID
+      - description: Transaction ID
         in: path
         name: id
         required: true
@@ -378,14 +378,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/history.UpdateHistoryRequest'
+          $ref: '#/definitions/transaction.UpdateTransactionRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/history.History'
+            $ref: '#/definitions/transaction.Transaction'
         "400":
           description: Bad Request
           schema:
@@ -408,9 +408,9 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Update Transaction History
+      summary: Update Transaction
       tags:
-      - History
+      - Transaction
   /users/current:
     get:
       consumes:

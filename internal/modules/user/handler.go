@@ -186,6 +186,125 @@ func (h *Handler) GetMe(c *fiber.Ctx) error {
 	})
 }
 
+func (h *Handler) ChangePassword(c *fiber.Ctx) error {
+	userID, ok := c.Locals("user_id").(string)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error":      "Unauthorized",
+			"request_id": c.Locals("request_id"),
+		})
+	}
+
+	var req ResetPasswordRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":      "Invalid request body",
+			"request_id": c.Locals("request_id"),
+		})
+	}
+
+	err := h.useCase.ResetPassword(c.Context(), userID, &req)
+	if err != nil {
+		if _, ok := err.(validator.ValidationErrors); ok {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error":      "Validation failed",
+				"details":    err.Error(),
+				"request_id": c.Locals("request_id"),
+			})
+		}
+		if err == ErrInvalidCurrentPassword {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error":      err.Error(),
+				"request_id": c.Locals("request_id"),
+			})
+		}
+
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error":      "Internal Server Error",
+			"request_id": c.Locals("request_id"),
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message":    "Password reset successful",
+		"request_id": c.Locals("request_id"),
+	})
+}
+
+func (h *Handler) ForgetPassword(c *fiber.Ctx) error {
+	var req ForgetPasswordRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":      "Invalid request body",
+			"request_id": c.Locals("request_id"),
+		})
+	}
+
+	err := h.useCase.ForgetPassword(c.Context(), &req)
+	if err != nil {
+		if _, ok := err.(validator.ValidationErrors); ok {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error":      "Validation failed",
+				"details":    err.Error(),
+				"request_id": c.Locals("request_id"),
+			})
+		}
+
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error":      "Internal Server Error",
+			"request_id": c.Locals("request_id"),
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message":    "Password reset link sent to your email",
+		"request_id": c.Locals("request_id"),
+	})
+}
+
+func (h *Handler) ResetPasswordWithToken(c *fiber.Ctx) error {
+	var req ResetPasswordWithTokenRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":      "Invalid request body",
+			"request_id": c.Locals("request_id"),
+		})
+	}
+
+	err := h.useCase.ResetPasswordWithToken(c.Context(), &req)
+	if err != nil {
+		if _, ok := err.(validator.ValidationErrors); ok {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error":      "Validation failed",
+				"details":    err.Error(),
+				"request_id": c.Locals("request_id"),
+			})
+		}
+		if err == ErrInvalidPasswordResetToken {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error":      err.Error(),
+				"request_id": c.Locals("request_id"),
+			})
+		}
+		if err == ErrUserNotFound {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"error":      err.Error(),
+				"request_id": c.Locals("request_id"),
+			})
+		}
+
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error":      "Internal Server Error",
+			"request_id": c.Locals("request_id"),
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message":    "Password reset successful",
+		"request_id": c.Locals("request_id"),
+	})
+}
+
 // RegisterRoutes registers all user-related routes
 func (h *Handler) RegisterRoutes(app *fiber.App, authMiddleware fiber.Handler, authRateLimiter fiber.Handler) {
 	api := app.Group("/api/users")
@@ -193,8 +312,11 @@ func (h *Handler) RegisterRoutes(app *fiber.App, authMiddleware fiber.Handler, a
 	// Public routes with stricter rate limiting
 	api.Post("/register", authRateLimiter, h.Register)
 	api.Post("/login", authRateLimiter, h.Login)
+	api.Post("/forget-password", authRateLimiter, h.ForgetPassword)
+	api.Post("/reset-password", authRateLimiter, h.ResetPasswordWithToken)
 
 	// Protected routes - require authentication
 	api.Post("/logout", authMiddleware, h.Logout)
 	api.Get("/current", authMiddleware, h.GetMe)
+	api.Post("/change-password", authMiddleware, h.ChangePassword)
 }

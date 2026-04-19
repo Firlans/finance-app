@@ -2,7 +2,8 @@
   "app": {
     "name": "finance-tracker-app",
     "version" : "1.0.0",
-    "authors" : "Firlan Syah & Tubagus Aldi Maulana Yusuf"
+    "authors" : "Firlan Syah & Tubagus Aldi Maulana Yusuf",
+    "url": "http://localhost:8080"
   },
   "web": {
     "prefork": false,
@@ -26,6 +27,14 @@
   "jwt": {
     "secret": "",
     "ttl": ""
+  },
+  "mail": {
+    "host": "",
+    "port": 587,
+    "username": "",
+    "password": "",
+    "from": "noreply@example.com",
+    "reset_password_url": "http://localhost:3000/reset-password"
   },
   "security": {
     "cors": {

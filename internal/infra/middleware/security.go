@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"strconv"
 	"sync"
 	"time"
 
@@ -65,6 +66,19 @@ func joinOrigins(origins []string) string {
 	return result
 }
 
+func buildLimitReachedResponse(c *fiber.Ctx, message string) fiber.Map {
+	retryAfter := c.GetRespHeader(fiber.HeaderRetryAfter)
+	seconds, err := strconv.Atoi(retryAfter)
+	response := fiber.Map{
+		"error": message,
+	}
+	if err == nil && seconds > 0 {
+		response["retry_after_seconds"] = seconds
+		response["retry_after_minutes"] = (seconds + 59) / 60
+	}
+	return response
+}
+
 // RateLimiter prevents brute force attacks
 func RateLimiter() fiber.Handler {
 	return limiter.New(limiter.Config{
@@ -74,9 +88,7 @@ func RateLimiter() fiber.Handler {
 			return c.IP()
 		},
 		LimitReached: func(c *fiber.Ctx) error {
-			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
-				"error": "Too many requests. Please try again later.",
-			})
+			return c.Status(fiber.StatusTooManyRequests).JSON(buildLimitReachedResponse(c, "Too many requests. Please try again later."))
 		},
 	})
 }
@@ -90,9 +102,7 @@ func AuthRateLimiter() fiber.Handler {
 			return c.IP()
 		},
 		LimitReached: func(c *fiber.Ctx) error {
-			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
-				"error": "Too many authentication attempts. Account temporarily locked.",
-			})
+			return c.Status(fiber.StatusTooManyRequests).JSON(buildLimitReachedResponse(c, "Too many authentication attempts. Account temporarily locked."))
 		},
 	})
 }
