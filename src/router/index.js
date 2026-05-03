@@ -1,45 +1,26 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import LandingPage from '../views/LandingPage.vue'
-import DashboardPage from '../views/DashboardPage.vue'
-import LoginPage from '@/views/LoginPage.vue'
-import RegisterPage from '@/views/RegisterPage.vue'
-import ForgetPasswordPage from '@/views/ForgetPasswordPage.vue'
-import ResetPasswordPage from '@/views/ResetPasswordPage.vue'
 
+const modules = import.meta.glob('../views/*.{vue,pattern.js}')
+
+const routes = Object.entries(modules).map(([filePath, loader]) => {
+  const fileName = filePath.replace('../views/', '')
+  const name = fileName
+    .replace(/\.vue$/, '')
+    .replace(/\.pattern\.js$/, '')
+    .replace(/Page$/, '')
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .replace(/([A-Z])([A-Z][a-z])/g, '$1-$2')
+    .toLowerCase()
+
+  return {
+    path: name === 'landing' ? '/' : `/${name}`,
+    name,
+    component: loader
+  }
+})
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  routes: [
-    {
-      path: '/',
-      name: 'home',
-      component: LandingPage
-    },
-    {
-      path: '/dashboard',
-      name: 'dashboard',
-      component: DashboardPage
-    },
-    {
-      path: '/login',
-      name: 'login',
-      component: LoginPage
-    },
-    {
-      path: '/register',
-      name: 'register',
-      component: RegisterPage
-    },
-    {
-      path: '/forget-password',
-      name: 'forget-password',
-      component: ForgetPasswordPage
-    },
-    {
-      path: '/reset-password',
-      name: 'reset-password',
-      component: ResetPasswordPage
-    }
-  ]
+  routes: routes
 })
 
 export default router
