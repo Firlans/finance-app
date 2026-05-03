@@ -1,7 +1,7 @@
 <script setup>
 import { reactive, ref } from 'vue'
 import BaseInput from '@/components/base/BaseInput.vue'
-import LoadingFeature from '@/components/features/LoadingFeaures.vue'
+import { Loading } from '@/utils/Loading.js'
 import { Validator } from '@/utils/Validator'
 import { required, email, minLength, sameAs } from '@/utils/Validator'
 import { parseApiError } from '@/utils/Error.js'
@@ -15,8 +15,7 @@ const form = reactive({
 })
 const showPassword = ref(false)
 const errors = reactive({})
-const loading = ref(false)
-const loadingLabel = ref('')
+const loading = new Loading()
 
 const handleRegister = async () => {
   console.log(`${import.meta.env.VITE_BACKEND_SERVICE}/users/register`)
@@ -35,8 +34,7 @@ const handleRegister = async () => {
   Object.keys(errors).forEach(k => delete errors[k])
 
 
-  loading.value = true
-  loadingLabel.value = 'Registering account...'
+  loading.start({ label: 'Registering account...' })
 
   try {
 
@@ -64,8 +62,7 @@ const handleRegister = async () => {
   } catch (error) {
     alert('gagal mendaftar: ' + (error?.message || error))
   } finally {
-    loading.value = false
-    loadingLabel.value = ''
+    loading.stop()
   }
 }
 
@@ -73,7 +70,6 @@ const handleRegister = async () => {
 
 <template>
   <div class="min-h-screen flex items-center justify-center bg-slate-100">
-    <LoadingFeature :show="loading" :label="loadingLabel" />
     <div class="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full">
       <h1 class="text-2xl font-bold text-center mb-6">Register</h1>
       <form @submit.prevent="handleRegister" class="space-y-4">

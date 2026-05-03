@@ -1,8 +1,9 @@
 <script setup>
 import BaseInput from '@/components/base/BaseInput.vue'
 import NotificationFeature from '@/components/features/NotificationFeature.vue'
+import { Loading } from '@/utils/Loading.js'
 import { parseApiError } from '@/utils/Error.js'
-import { reactive, ref } from 'vue'
+import { reactive } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -11,8 +12,7 @@ const form = reactive({
 })
 const errors = reactive({})
 const notif = reactive({ message: '', type: 'success' })
-const loading = ref(false)
-const loadingLabel = ref('')
+const loading = new Loading()
 
 const handleNotifClose = () => {
   notif.message = ''
@@ -26,8 +26,7 @@ const handleSubmit = async () => {
     return
   }
 
-  loading.value = true
-  loadingLabel.value = 'Sending reset link...'
+  loading.start({ label: 'Sending reset link...' })
 
   try {
     const res = await fetch(`${import.meta.env.VITE_BACKEND_SERVICE}/users/forget-password`, {
@@ -51,8 +50,7 @@ const handleSubmit = async () => {
     notif.message = error.message || 'Failed to send reset link'
     notif.type = 'error'
   } finally {
-    loading.value = false
-    loadingLabel.value = ''
+    loading.stop()
   }
 }
 </script>
@@ -60,7 +58,6 @@ const handleSubmit = async () => {
 <template>
   <div class="min-h-screen flex items-center justify-center bg-slate-100">
     <NotificationFeature :message="notif.message" :type="notif.type" @close="handleNotifClose" />
-    <LoadingFeature :show="loading" :label="loadingLabel" />
     <div class="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full">
       <h1 class="text-2xl font-bold text-center mb-6">Forget Password</h1>
 

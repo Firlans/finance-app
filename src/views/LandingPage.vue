@@ -1,17 +1,17 @@
 <script setup>
 import { useRouter } from 'vue-router'
 import SliderFeature from '@/components/features/SliderFeature.vue'
-import LoadingFeature from '@/components/features/LoadingFeaures.vue'
 import { onMounted, ref } from 'vue'
+import { Loading } from '@/utils/Loading.js'
 
 const router = useRouter()
 const developers = ref([
   { name: 'firlans', asof: 'Frontend Developer' },
   { name: 'TubagusAldiMY', asof: 'backend Developer' }
 ])
+const loading = new Loading()
 onMounted(async () => {
-  loading.value = true
-  loadingLabel.value = 'Loading developer profiles...'
+  loading.start({ label: 'Loading developer profiles...' })
 
   try {
     const githubAPI = import.meta.env.VITE_GITHUB_API
@@ -34,8 +34,7 @@ onMounted(async () => {
   } catch (err) {
     console.warn(err)
   } finally {
-    loading.value = false
-    loadingLabel.value = ''
+    loading.stop()
   }
 })
 // Feature data
@@ -121,7 +120,6 @@ const navigateTo = (path) => {
       </div>
     </nav>
 
-    <LoadingFeature :show="loading" :label="loadingLabel" />
     <!-- Hero Section -->
     <section class="pt-32 pb-20 px-4">
       <div class="max-w-7xl mx-auto text-center">

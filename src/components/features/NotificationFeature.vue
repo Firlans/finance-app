@@ -1,34 +1,84 @@
 <script setup>
-import { ref, watch, onUnmounted } from 'vue'
+import { computed, ref, watch, onUnmounted } from 'vue'
 
 const props = defineProps({
   message: { type: String, default: '' },
   type: { type: String, default: 'success' },
-  duration: { type: Number, default: 2000 }
+  duration: { type: Number, default: 2000 },
+  notification: { type: Object, default: null }
 })
 const emit = defineEmits(['close'])
 
-const visible = ref(false)
+const localVisible = ref(false)
 let timer = null
 
+const message = computed(() => {
+  if (props.notification && props.notification.message !== undefined) {
+    return props.notification.message.value
+  }
+  return props.message
+})
+
+const type = computed(() => {
+  if (props.notification && props.notification.type !== undefined) {
+    return props.notification.type
+  }
+  return props.type
+})
+
+const duration = computed(() => {
+  if (props.notification && props.notification.duration !== undefined) {
+    return props.notification.duration
+  }
+  return props.duration
+})
+
+const show = computed(() => {
+  if (props.notification && props.notification.show !== undefined) {
+    return props.notification.show.value
+  }
+  return localVisible.value
+})
+
 const handleClose = () => {
-  visible.value = false
+  if (props.notification && props.notification.show !== undefined) {
+    // eslint-disable-next-line vue/no-mutating-props
+    props.notification.show.value = false
+  } else {
+    localVisible.value = false
+  }
+
   if (timer) { clearTimeout(timer); timer = null }
   emit('close')
 }
 
-watch(() => props.message, (val) => {
-  if (val) {
-    visible.value = true
+watch([message, show], ([messageValue, showValue]) => {
+  if (showValue && messageValue) {
     if (timer) clearTimeout(timer)
     timer = setTimeout(() => {
-      visible.value = false
-      emit('close')
+      handleClose()
       timer = null
-    }, props.duration)
+    }, duration.value)
   } else {
-    visible.value = false
     if (timer) { clearTimeout(timer); timer = null }
+  }
+})
+
+watch(message, (val) => {
+  if (val) {
+    if (props.notification && props.notification.show !== undefined) {
+      // eslint-disable-next-line vue/no-mutating-props
+      props.notification.show.value = true
+    } else {
+      localVisible.value = true
+    }
+  } else {
+    if (props.notification && props.notification.show !== undefined) {
+      // eslint-disable-next-line vue/no-mutating-props
+      props.notification.show.value = false
+    } else {
+      localVisible.value = false
+    }
   }
 })
 
@@ -36,10 +86,10 @@ onUnmounted(() => { if (timer) clearTimeout(timer) })
 </script>
 
 <template>
-  <div v-if="visible" class="fixed right-4 top-6 z-50 max-w-sm w-full">
+  <div v-if="show" class="fixed right-4 top-6 z-50 max-w-sm w-full">
     <div :class="[
       'px-4 py-3 rounded-lg shadow-lg flex items-center space-x-3 text-white',
-      props.type === 'success' ? 'bg-green-600' : 'bg-red-600'
+      type === 'success' ? 'bg-green-600' : 'bg-red-600'
     ]" class="transition-opacity duration-200">
       <svg v-if="props.type === 'success'" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0"
         viewBox="0 0 20 20" fill="currentColor">
@@ -55,7 +105,7 @@ onUnmounted(() => { if (timer) clearTimeout(timer) })
       </svg>
 
       <div class="flex-1 text-sm">
-        {{ props.message }}
+        {{ message }}
       </div>
 
       <button @click="handleClose" class="text-white opacity-90 hover:opacity-100">

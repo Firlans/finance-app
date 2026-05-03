@@ -1,7 +1,7 @@
 <script setup>
 import BaseInput from '@/components/base/BaseInput.vue'
-import LoadingFeature from '@/components/features/LoadingFeaures.vue'
 import NotificationFeature from '@/components/features/NotificationFeature.vue'
+import { Loading } from '@/utils/Loading.js'
 import { parseApiError } from '@/utils/Error.js'
 import { Validator, required, minLength, sameAs } from '@/utils/Validator'
 import { reactive, ref } from 'vue'
@@ -21,8 +21,7 @@ const form = reactive({
 })
 const errors = reactive({})
 const notif = reactive({ message: '', type: 'success' })
-const loading = ref(false)
-const loadingLabel = ref('')
+const loading = new Loading()
 const showPassword = ref(false)
 
 const handleNotifClose = () => {
@@ -50,8 +49,7 @@ const handleSubmit = async () => {
 
   Object.keys(errors).forEach((key) => delete errors[key])
 
-  loading.value = true
-  loadingLabel.value = 'Resetting password...'
+  loading.start({ label: 'Resetting password...' })
 
   try {
     const res = await fetch(`${import.meta.env.VITE_BACKEND_SERVICE}/users/reset-password`, {
@@ -79,8 +77,7 @@ const handleSubmit = async () => {
     notif.message = error.message || 'Reset password gagal'
     notif.type = 'error'
   } finally {
-    loading.value = false
-    loadingLabel.value = ''
+    loading.stop()
   }
 }
 </script>
@@ -88,7 +85,6 @@ const handleSubmit = async () => {
 <template>
   <div class="min-h-screen flex items-center justify-center bg-slate-100">
     <NotificationFeature :message="notif.message" :type="notif.type" @close="handleNotifClose" />
-    <LoadingFeature :show="loading" :label="loadingLabel" />
     <div class="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full">
       <h1 class="text-2xl font-bold text-center mb-6">Reset Password</h1>
 
