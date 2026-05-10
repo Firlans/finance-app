@@ -4,8 +4,6 @@ import (
 	"strings"
 
 	"github.com/TubagusAldiMY/finance-tracker-app/backend/internal/infra/middleware"
-	"github.com/TubagusAldiMY/finance-tracker-app/backend/internal/modules/budget"
-	"github.com/TubagusAldiMY/finance-tracker-app/backend/internal/modules/transaction"
 	"github.com/TubagusAldiMY/finance-tracker-app/backend/internal/modules/user"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 
@@ -94,18 +92,8 @@ func Bootstrap(config *BootstrapConfig) {
 	userHandler := user.NewHandler(userUseCase)
 	userHandler.RegisterRoutes(config.App, authMiddleware, authRateLimiter)
 
-	// Budget Module
-	budgetRepo := budget.NewRepository(config.DB)
-	budgetUseCase := budget.NewUseCase(budgetRepo, config.Log, config.Validate)
-	budgetHandler := budget.NewHandler(budgetUseCase)
-	budgetHandler.RegisterRoutes(config.App, authMiddleware)
-
-	// Transaction Module (renamed from History)
-	transactionRepo := transaction.NewRepository(config.DB)
-	transactionUseCase := transaction.NewUseCase(transactionRepo, config.Log, config.Validate)
-	transactionHandler := transaction.NewHandler(transactionUseCase)
-	transactionHandler.RegisterRoutes(config.App, authMiddleware)
-
+	// register route
+	config.RegisterRoutes()
 	// ========================================
 	// SWAGGER DOCUMENTATION (Dev/Staging Only)
 	// ========================================

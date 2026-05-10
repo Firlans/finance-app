@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 
 CREATE TABLE IF NOT EXISTS accounts (
-    id UUID PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     user_id UUID NOT NULL,
     account_name VARCHAR(100) NOT NULL,
     balance NUMERIC(15, 2) NOT NULL DEFAULT 0.00,
