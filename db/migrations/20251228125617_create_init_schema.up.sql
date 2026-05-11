@@ -22,3 +22,16 @@ CREATE TABLE IF NOT EXISTS accounts (
         REFERENCES users(id)
         ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS transactions (
+    id SERIAL PRIMARY KEY,
+    account_id INTEGER NOT NULL,
+    amount NUMERIC(15, 2) NOT NULL,
+    transaction_type VARCHAR(10) NOT NULL CHECK (transaction_type IN ('debit', 'credit')),
+    description TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_transaction_account FOREIGN KEY(account_id)
+        REFERENCES accounts(id)
+        ON DELETE CASCADE
+);

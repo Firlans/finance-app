@@ -17,7 +17,7 @@ func NewHandler(useCase UseCase) *Handler {
 }
 
 func (h *Handler) RegisterRoutes(app *fiber.App, authMiddleware fiber.Handler, rateLimiter fiber.Handler) {
-	accountsGroup := app.Group("api/accounts", authMiddleware, rateLimiter)
+	accountsGroup := app.Group("api/accounts", authMiddleware)
 
 	accountsGroup.Get("/", h.getAccounts)
 	// accountsGroup.Get("/:id", getAccountByID)
