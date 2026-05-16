@@ -1,0 +1,44 @@
+name: Build and Deploy to Main
+
+on:
+  push:
+    branches:
+      - frontend
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source branch
+        uses: actions/checkout@v4
+        with:
+          ref: frontend
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+        env:
+          NODE_ENV: production
+          VITE_BACKEND_SERVICE: ${{ secrets.VITE_BACKEND_SERVICE }}
+          VITE_GITHUB_API: ${{ secrets.VITE_GITHUB_API }}
+
+      - name: Deploy dist to main branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: main
+          publish_dir: ./dist
+          force_orphan: true
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          commit_message: 'deploy: build from ${{ github.sha }}'
