@@ -48,6 +48,7 @@ export default defineComponent({
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: '/finance-app/',
   plugins: [
     vuePatternPlugin(),
     vue(),

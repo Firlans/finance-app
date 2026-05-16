@@ -32,6 +32,9 @@ jobs:
           VITE_BACKEND_SERVICE: ${{ secrets.VITE_BACKEND_SERVICE }}
           VITE_GITHUB_API: ${{ secrets.VITE_GITHUB_API }}
 
+      - name: Copy index.html to 404.html for SPA routing
+        run: cp dist/index.html dist/404.html
+
       - name: Deploy dist to main branch
         uses: peaceiris/actions-gh-pages@v4
         with:
