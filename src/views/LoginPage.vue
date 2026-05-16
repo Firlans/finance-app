@@ -37,8 +37,9 @@ const handleLogin = async () => {
   loading.start({ label: 'Logging in...' })
 
   try {
+    const API_BASE = import.meta.env.VITE_BACKEND_SERVICE || 'http://localhost:8080/api'
     const res = await fetch(
-      `${import.meta.env.VITE_BACKEND_SERVICE}/users/login`,
+      `${API_BASE}/users/login`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

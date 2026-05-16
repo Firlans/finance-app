@@ -52,7 +52,8 @@ const handleSubmit = async () => {
   loading.start({ label: 'Resetting password...' })
 
   try {
-    const res = await fetch(`${import.meta.env.VITE_BACKEND_SERVICE}/users/reset-password`, {
+    const API_BASE = import.meta.env.VITE_BACKEND_SERVICE || 'http://localhost:8080/api'
+    const res = await fetch(`${API_BASE}/users/reset-password`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

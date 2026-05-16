@@ -18,7 +18,8 @@ const errors = reactive({})
 const loading = new Loading()
 
 const handleRegister = async () => {
-  console.log(`${import.meta.env.VITE_BACKEND_SERVICE}/users/register`)
+  const API_BASE = import.meta.env.VITE_BACKEND_SERVICE || 'http://localhost:8080/api'
+  console.log(`${API_BASE}/users/register`)
   const validator = new Validator(form, {
     name: [required()],
     email: [required(), email()],
@@ -38,7 +39,7 @@ const handleRegister = async () => {
 
   try {
 
-    const res = await fetch(`${import.meta.env.VITE_BACKEND_SERVICE}/users/register`, {
+    const res = await fetch(`${API_BASE}/users/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
