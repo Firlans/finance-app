@@ -60,9 +60,13 @@ const handleLogin = async () => {
       data = await res.json()
     }
 
-    localStorage.setItem('access_token', data?.data?.access_token)
+    const accessToken = data?.data?.access_token || data?.access_token
+    if (!accessToken) {
+      throw new Error('Login berhasil, tetapi token tidak diterima dari server.')
+    }
 
-    // show success notification then redirect shortly after
+    localStorage.setItem('access_token', accessToken)
+
     notif.message = data?.message || 'Login successful'
     notif.type = 'success'
     setTimeout(() => router.push('/dashboard'), 800)

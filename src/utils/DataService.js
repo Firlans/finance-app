@@ -107,6 +107,14 @@ async function deleteTransaction(token, id) {
   return json?.data || null
 }
 
+async function logout(token) {
+  const json = await request('/users/logout', {
+    method: 'POST',
+    headers: getAuthHeaders(token, false)
+  })
+  return json || null
+}
+
 export {
   getCurrentUser,
   getAccounts,
@@ -116,5 +124,6 @@ export {
   getTransactions,
   createTransaction,
   updateTransaction,
-  deleteTransaction
+  deleteTransaction,
+  logout
 }
