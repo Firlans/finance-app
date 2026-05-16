@@ -14,7 +14,7 @@ onMounted(async () => {
   loading.start({ label: 'Loading developer profiles...' })
 
   try {
-    const githubAPI = import.meta.env.VITE_GITHUB_API
+    const githubAPI = import.meta.env.VITE_GITHUB_API || 'https://api.github.com/users/'
     const res = await Promise.all(
       developers.value.map(async developer => {
         const response = await fetch(`${githubAPI}${developer.name}`)
@@ -69,25 +69,25 @@ const screenshots = [
     id: 1,
     title: 'Dashboard Utama',
     description: 'Lihat ringkasan keuanganmu dalam satu tampilan',
-    image: '/public/dashboard.png'
+    image: `${import.meta.env.BASE_URL}dashboard.png`
   },
   {
     id: 2,
     title: 'Pencatatan Transaksi',
     description: 'Catat pemasukan dan pengeluaran dengan mudah',
-    image: '/public/transaksi.png'
+    image: `${import.meta.env.BASE_URL}transaksi.png`
   },
   {
     id: 3,
     title: 'Laporan Keuangan',
     description: 'Analisis keuangan dengan grafik yang intuitif',
-    image: '/images/laporan.png'
+    image: `${import.meta.env.BASE_URL}images/laporan.png`
   },
   {
     id: 4,
     title: 'Target Tabungan',
     description: 'Pantau progres pencapaian target tabunganmu',
-    image: '/images/target.png'
+    image: `${import.meta.env.BASE_URL}images/target.png`
   }
 ]
 
