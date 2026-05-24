@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { getCurrentUser, logout } from '@/utils/DataService'
+import { getCurrentUser, logout } from '@/DataService'
 import { Notification } from '@packages/utils/Notification.js'
 
 const router = useRouter()
@@ -85,8 +85,6 @@ async function handleLogout() {
             </div>
 
             <div class="border-t border-slate-200 pt-5">
-                <p class="text-sm text-slate-500 mb-3">Gunakan tombol logout untuk mengakhiri sesi Anda dengan endpoint
-                    backend <code>/api/users/logout</code>.</p>
                 <button @click="handleLogout" :disabled="logoutLoading"
                     class="inline-flex items-center justify-center rounded-lg bg-red-600 px-5 py-3 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition">
                     {{ logoutLoading ? 'Logging out...' : 'Logout' }}

@@ -1,8 +1,8 @@
 <script setup>
 import BaseInput from '@packages/components/base/BaseInput.vue'
-import NotificationFeature from '@packages/components/features/NotificationFeature.vue'
 import { Loading } from '@packages/utils/Loading.js'
-import { parseApiError } from '@/utils/Error.js'
+import { parseApiError } from '@packages/utils/Error.js'
+import { Notification } from '@packages/utils/Notification.js'
 import { reactive } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -10,19 +10,16 @@ const router = useRouter()
 const form = reactive({
   email: ''
 })
-const errors = reactive({})
-const notif = reactive({ message: '', type: 'success' })
 const loading = new Loading()
+const notification = new Notification()
 
-const handleNotifClose = () => {
-  notif.message = ''
-}
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const validEmail = (value) => emailPattern.test(String(value).trim())
 
-const handleSubmit = async () => {
-  errors.email = ''
-
-  if (!form.email) {
-    errors.email = 'Email is required'
+const handleSubmit = async (event) => {
+  event.preventDefault()
+  if (!event.target.reportValidity()) {
+    notification.showError('Periksa kembali email Anda')
     return
   }
 
@@ -41,15 +38,13 @@ const handleSubmit = async () => {
       throw new Error(errorMessage)
     }
 
-    notif.message = 'Password reset link sent to your email'
-    notif.type = 'success'
+    notification.showSuccess('Link reset password berhasil dikirim ke email Anda')
 
     setTimeout(() => {
       router.push('/login')
     }, 1200)
   } catch (error) {
-    notif.message = error.message || 'Failed to send reset link'
-    notif.type = 'error'
+    notification.showError(error?.message || 'Gagal mengirim link reset password')
   } finally {
     loading.stop()
   }
@@ -58,13 +53,13 @@ const handleSubmit = async () => {
 
 <template>
   <div class="min-h-screen bg-slate-100 flex flex-col items-center px-4 py-10">
-    <NotificationFeature :message="notif.message" :type="notif.type" @close="handleNotifClose" />
     <div class="my-auto w-full max-w-md bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
       <h1 class="text-xl sm:text-2xl font-bold text-center mb-5 sm:mb-6">Forget Password</h1>
 
       <form @submit.prevent="handleSubmit" class="space-y-4">
-        <BaseInput v-model="form.email" label="Email" type="email" placeholder="email@example.com" :error="errors.email"
-          inputClass="bg-slate-50" />
+        <BaseInput v-model="form.email" label="Email" type="email" placeholder="email@example.com" inputClass="bg-slate-50"
+          required
+          :validate="['Masukkan email yang valid', validEmail]" />
 
         <button type="submit" class="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
           Send Reset Link

@@ -2,9 +2,8 @@
 import { reactive, ref } from 'vue'
 import BaseInput from '@packages/components/base/BaseInput.vue'
 import { Loading } from '@packages/utils/Loading.js'
-import { Validator } from '@packages/utils/Validator.js'
-import { required, email, minLength, sameAs } from '@packages/utils/Validator.js'
-import { parseApiError } from '@/utils/Error.js'
+import { parseApiError } from '@packages/utils/Error.js'
+import { Notification } from '@packages/utils/Notification.js'
 import router from '@/router'
 
 const form = reactive({
@@ -14,26 +13,23 @@ const form = reactive({
   confirmPassword: ''
 })
 const showPassword = ref(false)
-const errors = reactive({})
 const loading = new Loading()
+const notification = new Notification()
 
-const handleRegister = async () => {
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+const validName = (value) => String(value).trim().length > 0
+const validEmail = (value) => emailPattern.test(String(value).trim())
+const validPassword = (value) => String(value).length >= 8
+const validPasswordConfirmation = (value) => String(value).length > 0 && value === form.password
+
+const handleRegister = async (event) => {
+  event.preventDefault()
   const API_BASE = import.meta.env.VITE_BACKEND_SERVICE || 'http://localhost:8080/api'
-  console.log(`${API_BASE}/users/register`)
-  const validator = new Validator(form, {
-    name: [required()],
-    email: [required(), email()],
-    password: [minLength(8)],
-    confirmPassword: [sameAs('password', 'Password not match')]
-  })
-
-  if (!validator.validate()) {
-    Object.assign(errors, validator.getErrors())
+  if (!event.target.reportValidity()) {
+    notification.showError('Periksa kembali data pendaftaran')
     return
   }
-
-  Object.keys(errors).forEach(k => delete errors[k])
-
 
   loading.start({ label: 'Registering account...' })
 
@@ -58,10 +54,10 @@ const handleRegister = async () => {
     }
 
     const data = await res.json()
-    console.log('REGISTER SUCCESS', data)
+    notification.showSuccess(data?.message || 'Registrasi berhasil')
     router.push('/login')
   } catch (error) {
-    alert('gagal mendaftar: ' + (error?.message || error))
+    notification.showError(error?.message || 'Gagal mendaftar')
   } finally {
     loading.stop()
   }
@@ -74,13 +70,16 @@ const handleRegister = async () => {
     <div class="my-auto w-full max-w-md bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
       <h1 class="text-xl sm:text-2xl font-bold text-center mb-5 sm:mb-6">Register</h1>
       <form @submit.prevent="handleRegister" class="space-y-4">
-        <BaseInput v-model="form.name" label="Name" placeholder="Your name" :error="errors.name" />
+        <BaseInput v-model="form.name" label="Name" placeholder="Your name" required
+          :validate="['Nama wajib diisi', validName]" />
 
-        <BaseInput v-model="form.email" label="Email" type="email" placeholder="email@example.com" :error="errors.email"
-          inputClass="bg-slate-50" />
+        <BaseInput v-model="form.email" label="Email" type="email" placeholder="email@example.com" inputClass="bg-slate-50"
+          required
+          :validate="['Masukkan email yang valid', validEmail]" />
 
         <BaseInput v-model="form.password" label="Password" :type="showPassword ? 'text' : 'password'"
-          :error="errors.password">
+          required
+          :validate="['Password minimal 8 karakter', validPassword]">
           <template #right>
             <button type="button" class="text-sm text-slate-500" @click="showPassword = !showPassword">
               {{ showPassword ? 'Hide' : 'Show' }}
@@ -90,7 +89,8 @@ const handleRegister = async () => {
 
 
         <BaseInput v-model="form.confirmPassword" label="Confirm Password" type="password"
-          :error="errors.confirmPassword" />
+          required
+          :validate="['Konfirmasi password harus sama', validPasswordConfirmation]" />
 
         <button type="submit" class="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
           Register

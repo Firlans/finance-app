@@ -1,8 +1,8 @@
 <script setup>
 import BaseInput from '@packages/components/base/BaseInput.vue'
-import NotificationFeature from '@packages/components/features/NotificationFeature.vue'
-import { parseApiError } from '@/utils/Error.js'
+import { parseApiError } from '@packages/utils/Error.js'
 import { Loading } from '@packages/utils/Loading.js'
+import { Notification } from '@packages/utils/Notification.js'
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -14,23 +14,17 @@ const form = reactive({
 })
 
 const showPassword = ref(false)
-const errors = reactive({})
 const loading = new Loading()
+const notification = new Notification()
 
-const notif = reactive({ message: '', type: 'success' })
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-const handleLogin = async () => {
-  // reset error
-  errors.email = ''
-  errors.password = ''
+const validEmail = (value) => emailPattern.test(String(value).trim())
 
-  // validasi minimal manual (opsional tapi waras)
-  if (!form.email) {
-    errors.email = 'Email is required'
-    return
-  }
-  if (!form.password) {
-    errors.password = 'Password is required'
+const handleLogin = async (event) => {
+  event.preventDefault()
+  if (!event.target.reportValidity()) {
+    notification.showError('Periksa kembali data login')
     return
   }
 
@@ -68,31 +62,28 @@ const handleLogin = async () => {
 
     localStorage.setItem('access_token', accessToken)
 
-    notif.message = data?.message || 'Login successful'
-    notif.type = 'success'
+    notification.showSuccess(data?.message || 'Login berhasil')
     setTimeout(() => router.push('/dashboard'), 800)
   } catch (error) {
-    notif.message = error.message || 'Login error'
-    notif.type = 'error'
+    notification.showError(error?.message || 'Login gagal')
   } finally {
     loading.stop()
   }
 }
-
-const handleNotifClose = () => { notif.message = '' }
 </script>
 
 
 <template>
   <div class="min-h-screen bg-slate-100 flex flex-col items-center px-4 py-10">
-    <NotificationFeature :message="notif.message" :type="notif.type" @close="handleNotifClose" />
     <div class="my-auto w-full max-w-md bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
       <h1 class="text-xl sm:text-2xl font-bold text-center mb-5 sm:mb-6">Login</h1>
       <form @submit.prevent="handleLogin" class="space-y-4">
-        <BaseInput v-model="form.email" label="Email" type="email" placeholder="email@example.com" :error="errors.email"
-          inputClass="bg-slate-50" />
+        <BaseInput v-model="form.email" label="Email" type="email" placeholder="email@example.com"
+          inputClass="bg-slate-50" required
+          :validate="['Masukkan email yang valid', validEmail]" />
         <BaseInput v-model="form.password" label="Password" :type="showPassword ? 'text' : 'password'"
-          :error="errors.password">
+          required
+          :validate="['Password wajib diisi', value => String(value).trim().length > 0]">
           <template #right>
             <button type="button" class="text-sm text-slate-500" @click="showPassword = !showPassword">
               {{ showPassword ? 'Hide' : 'Show' }}

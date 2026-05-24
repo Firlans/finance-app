@@ -1,9 +1,8 @@
 <script setup>
 import BaseInput from '@packages/components/base/BaseInput.vue'
-import NotificationFeature from '@packages/components/features/NotificationFeature.vue'
 import { Loading } from '@packages/utils/Loading.js'
-import { parseApiError } from '@/utils/Error.js'
-import { Validator, required, minLength, sameAs } from '@packages/utils/Validator.js'
+import { parseApiError } from '@packages/utils/Error.js'
+import { Notification } from '@packages/utils/Notification.js'
 import { reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -19,35 +18,24 @@ const form = reactive({
   new_password: '',
   confirm_password: ''
 })
-const errors = reactive({})
-const notif = reactive({ message: '', type: 'success' })
 const loading = new Loading()
 const showPassword = ref(false)
+const notification = new Notification()
 
-const handleNotifClose = () => {
-  notif.message = ''
-}
+const validPassword = (value) => String(value).length >= 8
+const validPasswordConfirmation = (value) => String(value).length > 0 && value === form.new_password
 
-const handleSubmit = async () => {
-  errors.new_password = ''
-  errors.confirm_password = ''
-
+const handleSubmit = async (event) => {
+  event.preventDefault()
   if (!token.value) {
-    errors.token = 'Invalid reset link. Please use the link from the email.'
+    notification.showError('Link reset tidak valid. Silakan gunakan link dari email.')
     return
   }
 
-  const validator = new Validator(form, {
-    new_password: [required('New password is required'), minLength(8, 'Password must be at least 8 characters')],
-    confirm_password: [sameAs('new_password', 'Password confirmation does not match')]
-  })
-
-  if (!validator.validate()) {
-    Object.assign(errors, validator.getErrors())
+  if (!event.target.reportValidity()) {
+    notification.showError('Periksa kembali data password baru')
     return
   }
-
-  Object.keys(errors).forEach((key) => delete errors[key])
 
   loading.start({ label: 'Resetting password...' })
 
@@ -68,15 +56,13 @@ const handleSubmit = async () => {
       throw new Error(errorMessage)
     }
 
-    notif.message = 'Password berhasil direset. Silakan login kembali.'
-    notif.type = 'success'
+    notification.showSuccess('Password berhasil direset. Silakan login kembali.')
 
     setTimeout(() => {
       router.push('/login')
     }, 1200)
   } catch (error) {
-    notif.message = error.message || 'Reset password gagal'
-    notif.type = 'error'
+    notification.showError(error?.message || 'Reset password gagal')
   } finally {
     loading.stop()
   }
@@ -85,15 +71,13 @@ const handleSubmit = async () => {
 
 <template>
   <div class="min-h-screen bg-slate-100 flex flex-col items-center px-4 py-10">
-    <NotificationFeature :message="notif.message" :type="notif.type" @close="handleNotifClose" />
     <div class="my-auto w-full max-w-md bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
       <h1 class="text-xl sm:text-2xl font-bold text-center mb-5 sm:mb-6">Reset Password</h1>
 
-      <p v-if="errors.token" class="text-sm text-red-600 mb-4">{{ errors.token }}</p>
-
       <form @submit.prevent="handleSubmit" class="space-y-4">
         <BaseInput v-model="form.new_password" label="New Password" :type="showPassword ? 'text' : 'password'"
-          :error="errors.new_password" inputClass="bg-slate-50">
+          inputClass="bg-slate-50" required
+          :validate="['Password minimal 8 karakter', validPassword]">
           <template #right>
             <button type="button" class="text-sm text-slate-500" @click="showPassword = !showPassword">
               {{ showPassword ? 'Hide' : 'Show' }}
@@ -102,7 +86,8 @@ const handleSubmit = async () => {
         </BaseInput>
 
         <BaseInput v-model="form.confirm_password" label="Confirm Password" :type="showPassword ? 'text' : 'password'"
-          :error="errors.confirm_password" inputClass="bg-slate-50" />
+          inputClass="bg-slate-50" required
+          :validate="['Konfirmasi password harus sama', validPasswordConfirmation]" />
 
         <button type="submit"
           class="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-60"

@@ -1,9 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
-const modules = import.meta.glob('../views/*.{vue,pattern.js}')
+const modules = import.meta.glob('./views/*.{vue,pattern.js}')
 
 const routes = Object.entries(modules).map(([filePath, loader]) => {
-  const fileName = filePath.replace('../views/', '')
+  const fileName = filePath.replace('./views/', '')
   const name = fileName
     .replace(/\.vue$/, '')
     .replace(/\.pattern\.js$/, '')

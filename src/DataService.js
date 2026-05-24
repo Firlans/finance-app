@@ -1,12 +1,20 @@
 import { Config } from './Config.js'
-import { parseApiError } from './Error.js'
+import { parseApiError } from '@packages/utils/Error.js'
 
 const API_BASE = import.meta.env.VITE_BACKEND_SERVICE || Config.url
 
+const normalizeToken = (token) => {
+  if (!token) return ''
+  return String(token)
+    .trim()
+    .replace(/^Bearer\s+/i, '')
+}
+
 const getAuthHeaders = (token, json = true) => {
   const headers = {}
-  if (token) {
-    headers.Authorization = `Bearer ${token}`
+  const normalizedToken = normalizeToken(token)
+  if (normalizedToken) {
+    headers.Authorization = `Bearer ${normalizedToken}`
   }
   if (json) {
     headers['Content-Type'] = 'application/json'
@@ -115,6 +123,39 @@ async function logout(token) {
   return json || null
 }
 
+async function getCategories(token) {
+  const json = await request('/categories', {
+    headers: getAuthHeaders(token, false)
+  })
+  return json?.data || []
+}
+
+async function createCategory(token, payload) {
+  const json = await request('/categories', {
+    method: 'POST',
+    headers: getAuthHeaders(token),
+    body: JSON.stringify(payload)
+  })
+  return json?.data || null
+}
+
+async function updateCategory(token, id, payload) {
+  const json = await request(`/categories/${id}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(token),
+    body: JSON.stringify(payload)
+  })
+  return json?.data || null
+}
+
+async function deleteCategory(token, id) {
+  const json = await request(`/categories/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(token, false)
+  })
+  return json?.data || null
+}
+
 export {
   getCurrentUser,
   getAccounts,
@@ -125,5 +166,9 @@ export {
   createTransaction,
   updateTransaction,
   deleteTransaction,
-  logout
+  logout,
+  getCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory
 }

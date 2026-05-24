@@ -6,7 +6,7 @@ const sections = [
   { id: 1, name: 'Dashboard', link: '/dashboard', icon: 'D' },
   { id: 2, name: 'Profile', link: '/profile', icon: 'P' },
   { id: 3, name: 'Transactions', link: '/transactions', icon: 'T' },
-  { id: 4, name: 'Accounts', link: '/accounts', icon: 'A' },
+  { id: 4, name: 'Settings', link: '/settings', icon: '⚙' },
 ]
 
 const route = useRoute()

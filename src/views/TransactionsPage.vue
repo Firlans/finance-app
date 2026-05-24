@@ -2,14 +2,13 @@
 import { reactive, ref, computed, onMounted } from 'vue'
 import BaseInput from '@packages/components/base/BaseInput.vue'
 import { Notification } from '@packages/utils/Notification.js'
-import { Validator, required } from '@packages/utils/Validator.js'
 import {
   createTransaction,
   deleteTransaction,
   getAccounts,
   getTransactions,
   updateTransaction
-} from '@/utils/DataService.js'
+} from '@/DataService.js'
 
 const notification = new Notification()
 const transactions = ref([])
@@ -25,8 +24,6 @@ const form = reactive({
   type: 'debit',
   account_id: ''
 })
-
-const errors = reactive({})
 
 const typeOptions = [
   { value: 'debit', label: 'Expense' },
@@ -75,7 +72,6 @@ const resetForm = () => {
   form.type = 'debit'
   form.account_id = accounts.value.length ? String(accounts.value[0].id) : ''
   editingId.value = null
-  Object.keys(errors).forEach((key) => delete errors[key])
 }
 
 const openNewForm = () => {
@@ -94,7 +90,6 @@ const openEditForm = (transaction) => {
   form.account_id = transaction.account_id ? String(transaction.account_id) : accounts.value.length ? String(accounts.value[0].id) : ''
   editingId.value = transaction.id
   isFormOpen.value = true
-  Object.keys(errors).forEach((key) => delete errors[key])
 }
 
 const closeForm = () => {
@@ -102,29 +97,15 @@ const closeForm = () => {
   resetForm()
 }
 
-const numeric = (message = 'Jumlah harus berupa angka positif') => (value) => {
+const validDescription = (value) => String(value).trim().length > 0
+const numeric = (value) => {
   const number = Number(value)
-  return Number.isFinite(number) && number > 0 ? '' : message
+  return Number.isFinite(number) && number > 0
 }
 
-const validateForm = () => {
-  const validator = new Validator(form, {
-    description: [required('Deskripsi wajib diisi')],
-    amount: [required('Jumlah wajib diisi'), numeric('Jumlah harus lebih besar dari 0')],
-    account_id: [required('Pilih akun transaksi')]
-  })
-
-  if (!validator.validate()) {
-    Object.assign(errors, validator.getErrors())
-    return false
-  }
-
-  Object.keys(errors).forEach((key) => delete errors[key])
-  return true
-}
-
-const handleSubmit = async () => {
-  if (!validateForm()) {
+const handleSubmit = async (event) => {
+  event.preventDefault()
+  if (!event.target.reportValidity()) {
     notification.showError('Periksa kembali data transaksi')
     return
   }
@@ -231,20 +212,21 @@ onMounted(async () => {
 
       <form @submit.prevent="handleSubmit" class="grid gap-5 pt-6 md:grid-cols-2">
         <BaseInput v-model="form.description" label="Deskripsi" placeholder="Contoh: Beli makan siang"
-          :error="errors.description" />
+          required
+          :validate="['Deskripsi wajib diisi', validDescription]" />
 
         <div class="space-y-1">
           <label class="block text-sm font-medium text-slate-700">Akun</label>
-          <select v-model="form.account_id"
+          <select v-model="form.account_id" required
             class="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
             <option v-for="account in accountOptions" :key="account.id" :value="String(account.id)">
               {{ account.account_name }}
             </option>
           </select>
-          <p v-if="errors.account_id" class="mt-1 text-sm text-rose-600">{{ errors.account_id }}</p>
         </div>
 
-        <BaseInput v-model="form.amount" label="Jumlah" type="number" placeholder="0" :error="errors.amount" />
+        <BaseInput v-model="form.amount" label="Jumlah" type="number" placeholder="0" required
+          :validate="['Jumlah harus lebih besar dari 0', numeric]" />
 
         <div class="space-y-1">
           <label class="block text-sm font-medium text-slate-700">Tipe</label>
