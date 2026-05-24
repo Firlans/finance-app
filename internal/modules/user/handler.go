@@ -305,6 +305,62 @@ func (h *Handler) ResetPasswordWithToken(c *fiber.Ctx) error {
 	})
 }
 
+// RefreshToken godoc
+// @Summary      Refresh Access Token
+// @Description  Issue a new access token using the current valid token. Old token is invalidated.
+// @Tags         User
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200  {object}  LoginResponse
+// @Failure      401  {object}  map[string]interface{}
+// @Failure      500  {object}  map[string]interface{}
+// @Router       /users/refresh-token [post]
+func (h *Handler) RefreshToken(c *fiber.Ctx) error {
+	userID, ok := c.Locals("user_id").(string)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error":      "Unauthorized",
+			"request_id": c.Locals("request_id"),
+		})
+	}
+
+	oldToken, ok := c.Locals("access_token").(string)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error":      "Token not found",
+			"request_id": c.Locals("request_id"),
+		})
+	}
+
+	tokenExp, ok := c.Locals("token_exp").(time.Time)
+	if !ok {
+		tokenExp = time.Now().Add(24 * time.Hour)
+	}
+
+	resp, err := h.useCase.RefreshToken(c.Context(), userID, oldToken, tokenExp)
+	if err != nil {
+		if err == ErrUserNotFound {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error":      "Unauthorized",
+				"request_id": c.Locals("request_id"),
+			})
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error":      "Internal Server Error",
+			"request_id": c.Locals("request_id"),
+		})
+	}
+
+	// Blacklist the old token
+	middleware.GetBlacklist().Add(oldToken, tokenExp)
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"data":       resp,
+		"request_id": c.Locals("request_id"),
+	})
+}
+
 // RegisterRoutes registers all user-related routes
 func (h *Handler) RegisterRoutes(app *fiber.App, authMiddleware fiber.Handler, authRateLimiter fiber.Handler) {
 	api := app.Group("/api/users")
@@ -319,4 +375,5 @@ func (h *Handler) RegisterRoutes(app *fiber.App, authMiddleware fiber.Handler, a
 	api.Post("/logout", authMiddleware, h.Logout)
 	api.Get("/current", authMiddleware, h.GetMe)
 	api.Post("/change-password", authMiddleware, h.ChangePassword)
+	api.Post("/refresh-token", authMiddleware, h.RefreshToken)
 }

@@ -26,6 +26,7 @@ type UseCase interface {
 	ResetPassword(ctx context.Context, userID string, req *ResetPasswordRequest) error
 	ForgetPassword(ctx context.Context, req *ForgetPasswordRequest) error
 	ResetPasswordWithToken(ctx context.Context, req *ResetPasswordWithTokenRequest) error
+	RefreshToken(ctx context.Context, userID string, oldToken string, oldTokenExp time.Time) (*LoginResponse, error)
 }
 
 type useCase struct {
@@ -305,4 +306,54 @@ func (u *useCase) ResetPasswordWithToken(ctx context.Context, req *ResetPassword
 	}
 
 	return nil
+}
+
+func (u *useCase) RefreshToken(ctx context.Context, userID string, oldToken string, oldTokenExp time.Time) (*LoginResponse, error) {
+	user, err := u.repo.FindByID(ctx, userID)
+	if err != nil {
+		u.log.WithError(err).Error("RefreshToken: failed to find user")
+		return nil, ErrInternalServer
+	}
+	if user == nil {
+		return nil, ErrUserNotFound
+	}
+
+	tokenTTL := u.cfg.GetDuration("jwt.ttl")
+	if tokenTTL == 0 {
+		tokenTTL = 24 * time.Hour
+	}
+
+	now := time.Now()
+	claims := jwt.MapClaims{
+		"sub":   user.ID,
+		"exp":   now.Add(tokenTTL).Unix(),
+		"iat":   now.Unix(),
+		"name":  user.Username,
+		"email": user.Email,
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	jwtSecret := u.cfg.GetString("jwt.secret")
+	if jwtSecret == "" {
+		u.log.Error("JWT Secret is not configured")
+		return nil, ErrInternalServer
+	}
+
+	signedToken, err := token.SignedString([]byte(jwtSecret))
+	if err != nil {
+		u.log.WithError(err).Error("RefreshToken: failed to sign token")
+		return nil, ErrInternalServer
+	}
+
+	return &LoginResponse{
+		AccessToken: signedToken,
+		TokenType:   "Bearer",
+		User: UserResponse{
+			ID:        user.ID,
+			Username:  user.Username,
+			Email:     user.Email,
+			CreatedAt: user.CreatedAt,
+		},
+	}, nil
 }
