@@ -49,6 +49,19 @@ async function getCurrentUser(token) {
   return json?.data ?? null
 }
 
+async function refreshToken(token) {
+  if (!token) {
+    return null
+  }
+
+  const json = await request('/users/refresh-token', {
+    method: 'POST',
+    headers: getAuthHeaders(token, false)
+  })
+
+  return json?.data?.access_token || json?.access_token || null
+}
+
 async function getAccounts(token) {
   const json = await request('/accounts', {
     headers: getAuthHeaders(token, false)
@@ -158,6 +171,7 @@ async function deleteCategory(token, id) {
 
 export {
   getCurrentUser,
+  refreshToken,
   getAccounts,
   createAccount,
   updateAccount,

@@ -1,9 +1,10 @@
 <script setup>
 import BaseInput from '@packages/components/base/BaseInput.vue'
+import { refreshToken } from '@/DataService.js'
 import { parseApiError } from '@packages/utils/Error.js'
 import { Loading } from '@packages/utils/Loading.js'
 import { Notification } from '@packages/utils/Notification.js'
-import { reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -16,18 +17,57 @@ const form = reactive({
 const showPassword = ref(false)
 const loading = new Loading()
 const notification = new Notification()
+const isRefreshing = ref(false)
+const isSubmitting = ref(false)
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const validEmail = (value) => emailPattern.test(String(value).trim())
 
+const persistAccessToken = (token) => {
+  localStorage.setItem('access_token', token)
+}
+
+const goToDashboard = () => {
+  router.replace('/dashboard')
+}
+
+const tryRefreshSession = async () => {
+  const currentToken = localStorage.getItem('access_token')
+  if (!currentToken) {
+    return
+  }
+
+  isRefreshing.value = true
+  loading.start({ label: 'Memeriksa sesi...' })
+
+  try {
+    const nextToken = await refreshToken(currentToken)
+    if (!nextToken) {
+      throw new Error('Token baru tidak diterima dari server.')
+    }
+
+    persistAccessToken(nextToken)
+    goToDashboard()
+  } catch {
+    localStorage.removeItem('access_token')
+  } finally {
+    isRefreshing.value = false
+    loading.stop()
+  }
+}
+
 const handleLogin = async (event) => {
   event.preventDefault()
+  if (isRefreshing.value || isSubmitting.value) {
+    return
+  }
   if (!event.target.reportValidity()) {
     notification.showError('Periksa kembali data login')
     return
   }
 
+  isSubmitting.value = true
   loading.start({ label: 'Logging in...' })
 
   try {
@@ -60,16 +100,21 @@ const handleLogin = async (event) => {
       throw new Error('Login berhasil, tetapi token tidak diterima dari server.')
     }
 
-    localStorage.setItem('access_token', accessToken)
+    persistAccessToken(accessToken)
 
     notification.showSuccess(data?.message || 'Login berhasil')
-    setTimeout(() => router.push('/dashboard'), 800)
+    setTimeout(() => goToDashboard(), 800)
   } catch (error) {
     notification.showError(error?.message || 'Login gagal')
   } finally {
+    isSubmitting.value = false
     loading.stop()
   }
 }
+
+onMounted(() => {
+  tryRefreshSession()
+})
 </script>
 
 
@@ -90,7 +135,9 @@ const handleLogin = async (event) => {
             </button>
           </template>
         </BaseInput>
-        <button type="submit" class="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+        <button type="submit"
+          class="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:cursor-not-allowed disabled:opacity-60"
+          :disabled="isRefreshing || isSubmitting">
           Login
         </button>
       </form>
