@@ -1,9 +1,9 @@
 <script setup>
 import { reactive, ref } from 'vue'
-import BaseInput from '@/components/base/BaseInput.vue'
-import { Loading } from '@/utils/Loading.js'
-import { Validator } from '@/utils/Validator'
-import { required, email, minLength, sameAs } from '@/utils/Validator'
+import BaseInput from '@packages/components/base/BaseInput.vue'
+import { Loading } from '@packages/utils/Loading.js'
+import { Validator } from '@packages/utils/Validator.js'
+import { required, email, minLength, sameAs } from '@packages/utils/Validator.js'
 import { parseApiError } from '@/utils/Error.js'
 import router from '@/router'
 
@@ -70,9 +70,9 @@ const handleRegister = async () => {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-slate-100">
-    <div class="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full">
-      <h1 class="text-2xl font-bold text-center mb-6">Register</h1>
+  <div class="min-h-screen bg-slate-100 flex flex-col items-center px-4 py-10">
+    <div class="my-auto w-full max-w-md bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
+      <h1 class="text-xl sm:text-2xl font-bold text-center mb-5 sm:mb-6">Register</h1>
       <form @submit.prevent="handleRegister" class="space-y-4">
         <BaseInput v-model="form.name" label="Name" placeholder="Your name" :error="errors.name" />
 

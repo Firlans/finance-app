@@ -1,8 +1,8 @@
 <script setup>
 import { reactive, ref, computed, onMounted } from 'vue'
-import BaseInput from '@/components/base/BaseInput.vue'
-import { Notification } from '@/utils/Notification.js'
-import { Validator, required } from '@/utils/Validator.js'
+import BaseInput from '@packages/components/base/BaseInput.vue'
+import { Notification } from '@packages/utils/Notification.js'
+import { Validator, required } from '@packages/utils/Validator.js'
 import {
   createTransaction,
   deleteTransaction,
@@ -273,46 +273,81 @@ onMounted(async () => {
         <p class="text-sm">Klik tombol Tambah Transaksi untuk membuat daftar transaksi baru.</p>
       </div>
 
-      <div v-else class="overflow-x-auto">
-        <table class="min-w-full border-separate border-spacing-y-3 text-left">
-          <thead>
-            <tr class="text-sm text-slate-500">
-              <th class="px-4 py-3">Deskripsi</th>
-              <th class="px-4 py-3">Akun</th>
-              <th class="px-4 py-3">Tipe</th>
-              <th class="px-4 py-3">Tanggal</th>
-              <th class="px-4 py-3 text-right">Jumlah</th>
-              <th class="px-4 py-3">Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="transaction in filteredTransactions" :key="transaction.id"
-              class="rounded-3xl bg-slate-50 align-top text-sm shadow-sm transition hover:bg-slate-100">
-              <td class="px-4 py-4 text-slate-900">{{ transaction.description }}</td>
-              <td class="px-4 py-4 text-slate-600">{{ getAccountName(transaction.account_id) }}</td>
-              <td class="px-4 py-4">
+      <div v-else>
+        <!-- Mobile card layout -->
+        <div class="md:hidden space-y-3">
+          <div v-for="transaction in filteredTransactions" :key="transaction.id"
+            class="rounded-2xl bg-slate-50 p-4 shadow-sm space-y-2">
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0">
+                <p class="font-semibold text-slate-900 text-sm truncate">{{ transaction.description }}</p>
+                <p class="text-xs text-slate-500 mt-0.5">{{ getAccountName(transaction.account_id) }}</p>
+              </div>
+              <div class="text-right shrink-0">
+                <p class="font-semibold text-sm text-slate-900">{{ formatCurrency(transaction.amount) }}</p>
                 <span :class="transaction.type === 'credit'
-                  ? 'rounded-full bg-emerald-100 px-3 py-1 text-xs text-emerald-700'
-                  : 'rounded-full bg-rose-100 px-3 py-1 text-xs text-rose-700'">
+                  ? 'rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700'
+                  : 'rounded-full bg-rose-100 px-2 py-0.5 text-xs text-rose-700'">
                   {{ transaction.type === 'credit' ? 'Income' : 'Expense' }}
                 </span>
-              </td>
-              <td class="px-4 py-4 text-slate-600">{{ formatDate(transaction.created_at) }}</td>
-              <td class="px-4 py-4 text-right font-semibold text-slate-900">{{ formatCurrency(transaction.amount) }}
-              </td>
-              <td class="px-4 py-4 space-x-2">
-                <button @click="openEditForm(transaction)"
-                  class="rounded-lg bg-slate-100 px-3 py-1 text-sm text-slate-700 transition hover:bg-slate-200">
-                  Edit
-                </button>
-                <button @click="handleDelete(transaction.id)"
-                  class="rounded-lg bg-red-600 px-3 py-1 text-sm font-semibold text-white transition hover:bg-red-700">
-                  Hapus
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              </div>
+            </div>
+            <div class="text-xs text-slate-400">{{ formatDate(transaction.created_at) }}</div>
+            <div class="flex gap-2 pt-1">
+              <button @click="openEditForm(transaction)"
+                class="flex-1 rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-200">
+                Edit
+              </button>
+              <button @click="handleDelete(transaction.id)"
+                class="flex-1 rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-red-700">
+                Hapus
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Desktop table layout -->
+        <div class="hidden md:block overflow-x-auto">
+          <table class="min-w-full border-separate border-spacing-y-3 text-left">
+            <thead>
+              <tr class="text-sm text-slate-500">
+                <th class="px-4 py-3">Deskripsi</th>
+                <th class="px-4 py-3">Akun</th>
+                <th class="px-4 py-3">Tipe</th>
+                <th class="px-4 py-3">Tanggal</th>
+                <th class="px-4 py-3 text-right">Jumlah</th>
+                <th class="px-4 py-3">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="transaction in filteredTransactions" :key="transaction.id"
+                class="rounded-3xl bg-slate-50 align-top text-sm shadow-sm transition hover:bg-slate-100">
+                <td class="px-4 py-4 text-slate-900">{{ transaction.description }}</td>
+                <td class="px-4 py-4 text-slate-600">{{ getAccountName(transaction.account_id) }}</td>
+                <td class="px-4 py-4">
+                  <span :class="transaction.type === 'credit'
+                    ? 'rounded-full bg-emerald-100 px-3 py-1 text-xs text-emerald-700'
+                    : 'rounded-full bg-rose-100 px-3 py-1 text-xs text-rose-700'">
+                    {{ transaction.type === 'credit' ? 'Income' : 'Expense' }}
+                  </span>
+                </td>
+                <td class="px-4 py-4 text-slate-600">{{ formatDate(transaction.created_at) }}</td>
+                <td class="px-4 py-4 text-right font-semibold text-slate-900">{{ formatCurrency(transaction.amount) }}
+                </td>
+                <td class="px-4 py-4 space-x-2">
+                  <button @click="openEditForm(transaction)"
+                    class="rounded-lg bg-slate-100 px-3 py-1 text-sm text-slate-700 transition hover:bg-slate-200">
+                    Edit
+                  </button>
+                  <button @click="handleDelete(transaction.id)"
+                    class="rounded-lg bg-red-600 px-3 py-1 text-sm font-semibold text-white transition hover:bg-red-700">
+                    Hapus
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </section>

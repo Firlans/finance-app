@@ -1,7 +1,7 @@
 <script setup>
-import BaseInput from '@/components/base/BaseInput.vue'
-import NotificationFeature from '@/components/features/NotificationFeature.vue'
-import { Loading } from '@/utils/Loading.js'
+import BaseInput from '@packages/components/base/BaseInput.vue'
+import NotificationFeature from '@packages/components/features/NotificationFeature.vue'
+import { Loading } from '@packages/utils/Loading.js'
 import { parseApiError } from '@/utils/Error.js'
 import { reactive } from 'vue'
 import { useRouter } from 'vue-router'
@@ -57,10 +57,10 @@ const handleSubmit = async () => {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-slate-100">
+  <div class="min-h-screen bg-slate-100 flex flex-col items-center px-4 py-10">
     <NotificationFeature :message="notif.message" :type="notif.type" @close="handleNotifClose" />
-    <div class="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full">
-      <h1 class="text-2xl font-bold text-center mb-6">Forget Password</h1>
+    <div class="my-auto w-full max-w-md bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
+      <h1 class="text-xl sm:text-2xl font-bold text-center mb-5 sm:mb-6">Forget Password</h1>
 
       <form @submit.prevent="handleSubmit" class="space-y-4">
         <BaseInput v-model="form.email" label="Email" type="email" placeholder="email@example.com" :error="errors.email"

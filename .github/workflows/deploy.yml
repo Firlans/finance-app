@@ -1,47 +1,60 @@
-name: Build and Deploy to Main
+name: Build and Deploy to GitHub Pages
 
 on:
   push:
     branches:
       - frontend
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout source branch
+      - name: Checkout monorepo (packages & workspace config)
+        uses: actions/checkout@v4
+        with:
+          repository: Firlans/my-monorepo
+          path: .
+
+      - name: Checkout app (finance-app)
         uses: actions/checkout@v4
         with:
           ref: frontend
-          fetch-depth: 0
+          path: apps/finance-app
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: 22
+          cache: pnpm
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --no-frozen-lockfile
 
-      - name: Build project
-        run: npm run build
+      - name: Build @packages/components (CSS)
+        run: pnpm --filter @packages/components build:css
+
+      - name: Build app
+        run: pnpm --filter frontend build
         env:
           NODE_ENV: production
           VITE_BACKEND_SERVICE: ${{ secrets.VITE_BACKEND_SERVICE }}
           VITE_GITHUB_API: ${{ secrets.VITE_GITHUB_API }}
 
       - name: Copy index.html to 404.html for SPA routing
-        run: cp dist/index.html dist/404.html
+        run: cp apps/finance-app/dist/index.html apps/finance-app/dist/404.html
 
-      - name: Deploy dist to main branch
+      - name: Push dist to main branch
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: apps/finance-app/dist
           publish_branch: main
-          publish_dir: ./dist
           force_orphan: true
-          user_name: 'github-actions[bot]'
-          user_email: 'github-actions[bot]@users.noreply.github.com'
-          commit_message: 'deploy: build from ${{ github.sha }}'

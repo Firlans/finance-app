@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getCurrentUser, logout } from '@/utils/DataService'
-import { Notification } from '@/utils/Notification'
+import { Notification } from '@packages/utils/Notification.js'
 
 const router = useRouter()
 const notification = new Notification()

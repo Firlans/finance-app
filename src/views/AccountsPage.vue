@@ -1,8 +1,8 @@
 <script setup>
 import { reactive, ref, computed, onMounted } from 'vue'
-import BaseInput from '@/components/base/BaseInput.vue'
-import { Notification } from '@/utils/Notification.js'
-import { Validator, required } from '@/utils/Validator.js'
+import BaseInput from '@packages/components/base/BaseInput.vue'
+import { Notification } from '@packages/utils/Notification.js'
+import { Validator, required } from '@packages/utils/Validator.js'
 import {
   createAccount,
   deleteAccount,
@@ -218,37 +218,65 @@ onMounted(() => {
         <p class="text-sm">Klik tombol Tambah Akun untuk menambahkan akun baru.</p>
       </div>
 
-      <div v-else class="overflow-x-auto">
-        <table class="min-w-full border-separate border-spacing-y-3 text-left">
-          <thead>
-            <tr class="text-sm text-slate-500">
-              <th class="px-4 py-3">Nama Akun</th>
-              <th class="px-4 py-3">Saldo</th>
-              <th class="px-4 py-3">Deskripsi</th>
-              <th class="px-4 py-3">Dibuat</th>
-              <th class="px-4 py-3">Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="account in filteredAccounts" :key="account.id"
-              class="rounded-3xl bg-slate-50 align-top text-sm shadow-sm transition hover:bg-slate-100">
-              <td class="px-4 py-4 text-slate-900">{{ account.account_name }}</td>
-              <td class="px-4 py-4 text-slate-900">{{ formatCurrency(account.balance) }}</td>
-              <td class="px-4 py-4 text-slate-600">{{ account.description || '-' }}</td>
-              <td class="px-4 py-4 text-slate-600">{{ formatDate(account.created_at) }}</td>
-              <td class="px-4 py-4 space-x-2">
-                <button @click="openEditForm(account)"
-                  class="rounded-lg bg-slate-100 px-3 py-1 text-sm text-slate-700 transition hover:bg-slate-200">
-                  Edit
-                </button>
-                <button @click="handleDelete(account.id)"
-                  class="rounded-lg bg-red-600 px-3 py-1 text-sm font-semibold text-white transition hover:bg-red-700">
-                  Hapus
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div v-else>
+        <!-- Mobile card layout -->
+        <div class="md:hidden space-y-3">
+          <div v-for="account in filteredAccounts" :key="account.id"
+            class="rounded-2xl bg-slate-50 p-4 shadow-sm space-y-2">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <p class="font-semibold text-slate-900 text-sm">{{ account.account_name }}</p>
+                <p class="text-xs text-slate-500 mt-0.5">{{ account.description || '-' }}</p>
+              </div>
+              <span class="text-sm font-semibold text-slate-900 shrink-0">{{ formatCurrency(account.balance) }}</span>
+            </div>
+            <div class="text-xs text-slate-400">Dibuat: {{ formatDate(account.created_at) }}</div>
+            <div class="flex gap-2 pt-1">
+              <button @click="openEditForm(account)"
+                class="flex-1 rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-200">
+                Edit
+              </button>
+              <button @click="handleDelete(account.id)"
+                class="flex-1 rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-red-700">
+                Hapus
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Desktop table layout -->
+        <div class="hidden md:block overflow-x-auto">
+          <table class="min-w-full border-separate border-spacing-y-3 text-left">
+            <thead>
+              <tr class="text-sm text-slate-500">
+                <th class="px-4 py-3">Nama Akun</th>
+                <th class="px-4 py-3">Saldo</th>
+                <th class="px-4 py-3">Deskripsi</th>
+                <th class="px-4 py-3">Dibuat</th>
+                <th class="px-4 py-3">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="account in filteredAccounts" :key="account.id"
+                class="rounded-3xl bg-slate-50 align-top text-sm shadow-sm transition hover:bg-slate-100">
+                <td class="px-4 py-4 text-slate-900">{{ account.account_name }}</td>
+                <td class="px-4 py-4 text-slate-900">{{ formatCurrency(account.balance) }}</td>
+                <td class="px-4 py-4 text-slate-600">{{ account.description || '-' }}</td>
+                <td class="px-4 py-4 text-slate-600">{{ formatDate(account.created_at) }}</td>
+                <td class="px-4 py-4 space-x-2">
+                  <button @click="openEditForm(account)"
+                    class="rounded-lg bg-slate-100 px-3 py-1 text-sm text-slate-700 transition hover:bg-slate-200">
+                    Edit
+                  </button>
+                  <button @click="handleDelete(account.id)"
+                    class="rounded-lg bg-red-600 px-3 py-1 text-sm font-semibold text-white transition hover:bg-red-700">
+                    Hapus
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </section>

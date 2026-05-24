@@ -18,8 +18,9 @@ const isActive = (link) => route.path === link
 </script>
 
 <template>
+  <!-- Desktop Sidebar -->
   <aside
-    :class="['min-h-screen transition-all duration-300 border-r border-slate-800 bg-slate-950 text-slate-100', isOpen ? 'w-64' : 'w-20']">
+    :class="['hidden md:flex flex-col min-h-screen transition-all duration-300 border-r border-slate-800 bg-slate-950 text-slate-100', isOpen ? 'w-64' : 'w-20']">
     <div class="flex items-center justify-between gap-4 px-4 py-4 border-b border-slate-800">
       <div
         :class="['min-w-0 transition-all duration-300', isOpen ? 'flex items-center gap-3' : 'flex flex-col items-center gap-2']">
@@ -39,7 +40,6 @@ const isActive = (link) => route.path === link
         class="inline-flex flex-none h-11 w-11 items-center justify-center rounded-2xl border border-slate-800 bg-slate-900 text-slate-100 hover:bg-slate-800 transition relative z-10">
         <span class="text-xl">×</span>
       </button>
-
     </div>
 
     <nav class="px-2 py-4">
@@ -61,4 +61,18 @@ const isActive = (link) => route.path === link
       </ul>
     </nav>
   </aside>
+
+  <!-- Mobile Bottom Navigation -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-slate-950 border-t border-slate-800 flex items-center justify-around px-2 py-1 safe-area-inset-bottom">
+    <RouterLink
+      v-for="section in sections"
+      :key="section.id"
+      :to="section.link"
+      class="flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition min-w-0"
+      :class="isActive(section.link) ? 'text-blue-400' : 'text-slate-400 hover:text-white'"
+    >
+      <span class="text-lg font-bold leading-none">{{ section.icon }}</span>
+      <span class="text-xs leading-tight truncate">{{ section.name }}</span>
+    </RouterLink>
+  </nav>
 </template>
