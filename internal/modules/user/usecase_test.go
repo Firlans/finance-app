@@ -9,6 +9,7 @@ import (
 
 	"github.com/TubagusAldiMY/finance-tracker-app/backend/internal/modules/user"
 	"github.com/go-playground/validator/v10"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -310,6 +311,59 @@ func TestLogin_RepositoryError(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, user.ErrInternalServer, err)
 	assert.Nil(t, resp)
+}
+
+func TestRefreshToken_GeneratesUniqueJWTID(t *testing.T) {
+	u, mockRepo, _, cfg := setupTest()
+
+	hashedPwd, _ := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
+	dummyUser := &user.User{
+		ID:        "uuid-123",
+		Username:  "loginuser",
+		Email:     "login@example.com",
+		Password:  string(hashedPwd),
+		CreatedAt: time.Now(),
+	}
+
+	loginReq := &user.LoginRequest{
+		Email:    dummyUser.Email,
+		Password: "password123",
+	}
+
+	mockRepo.On("FindByEmail", mock.Anything, loginReq.Email).Return(dummyUser, nil).Once()
+	mockRepo.On("FindByID", mock.Anything, dummyUser.ID).Return(dummyUser, nil).Once()
+
+	loginResp, err := u.Login(context.Background(), loginReq)
+	assert.NoError(t, err)
+	assert.NotNil(t, loginResp)
+
+	refreshResp, err := u.RefreshToken(context.Background(), dummyUser.ID, loginResp.AccessToken, time.Now().Add(time.Hour))
+	assert.NoError(t, err)
+	assert.NotNil(t, refreshResp)
+	assert.NotEqual(t, loginResp.AccessToken, refreshResp.AccessToken)
+
+	parseToken := func(tokenString string) jwt.MapClaims {
+		t.Helper()
+
+		token, parseErr := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			return []byte(cfg.GetString("jwt.secret")), nil
+		})
+		assert.NoError(t, parseErr)
+		assert.True(t, token.Valid)
+
+		claims, ok := token.Claims.(jwt.MapClaims)
+		assert.True(t, ok)
+		return claims
+	}
+
+	loginClaims := parseToken(loginResp.AccessToken)
+	refreshClaims := parseToken(refreshResp.AccessToken)
+
+	assert.NotEmpty(t, loginClaims["jti"])
+	assert.NotEmpty(t, refreshClaims["jti"])
+	assert.NotEqual(t, loginClaims["jti"], refreshClaims["jti"])
+
+	mockRepo.AssertExpectations(t)
 }
 
 func TestForgetPassword_ExistingEmail(t *testing.T) {

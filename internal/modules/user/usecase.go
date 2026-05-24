@@ -47,6 +47,39 @@ func NewUseCase(repo Repository, log *logrus.Logger, validate *validator.Validat
 	}
 }
 
+func (u *useCase) generateAccessToken(user *User) (string, error) {
+	tokenTTL := u.cfg.GetDuration("jwt.ttl")
+	if tokenTTL == 0 {
+		tokenTTL = 24 * time.Hour
+	}
+
+	now := time.Now()
+	claims := jwt.MapClaims{
+		"sub":   user.ID,
+		"exp":   now.Add(tokenTTL).Unix(),
+		"iat":   now.Unix(),
+		"jti":   uuid.NewString(),
+		"name":  user.Username,
+		"email": user.Email,
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	jwtSecret := u.cfg.GetString("jwt.secret")
+	if jwtSecret == "" {
+		u.log.Error("JWT Secret is not configured")
+		return "", ErrInternalServer
+	}
+
+	signedToken, err := token.SignedString([]byte(jwtSecret))
+	if err != nil {
+		u.log.WithError(err).Error("Failed to sign token")
+		return "", ErrInternalServer
+	}
+
+	return signedToken, nil
+}
+
 // Register Usecase
 func (u *useCase) Register(ctx context.Context, req *RegisterRequest) (*RegisterResponse, error) {
 	// 1. Validasi Input
@@ -114,36 +147,9 @@ func (u *useCase) Login(ctx context.Context, req *LoginRequest) (*LoginResponse,
 		return nil, ErrInvalidCredentials
 	}
 
-	// 3. Generate JWT Token
-	tokenTTL := u.cfg.GetDuration("jwt.ttl")
-	if tokenTTL == 0 {
-		tokenTTL = 24 * time.Hour // Default value
-	}
-
-	// Setup Claims
-	now := time.Now()
-	claims := jwt.MapClaims{
-		"sub":   user.ID,
-		"exp":   now.Add(tokenTTL).Unix(),
-		"iat":   now.Unix(),
-		"name":  user.Username,
-		"email": user.Email,
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-	// Ambil Secret Key
-	jwtSecret := u.cfg.GetString("jwt.secret")
-	if jwtSecret == "" {
-		u.log.Error("JWT Secret Is not Configured")
-		return nil, ErrInternalServer
-	}
-
-	// Sign Token
-	signedToken, err := token.SignedString([]byte(jwtSecret))
+	signedToken, err := u.generateAccessToken(user)
 	if err != nil {
-		u.log.WithError(err).Error("Failed To Sign Token")
-		return nil, ErrInternalServer
+		return nil, err
 	}
 
 	// 4. Return Response
@@ -318,32 +324,9 @@ func (u *useCase) RefreshToken(ctx context.Context, userID string, oldToken stri
 		return nil, ErrUserNotFound
 	}
 
-	tokenTTL := u.cfg.GetDuration("jwt.ttl")
-	if tokenTTL == 0 {
-		tokenTTL = 24 * time.Hour
-	}
-
-	now := time.Now()
-	claims := jwt.MapClaims{
-		"sub":   user.ID,
-		"exp":   now.Add(tokenTTL).Unix(),
-		"iat":   now.Unix(),
-		"name":  user.Username,
-		"email": user.Email,
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-	jwtSecret := u.cfg.GetString("jwt.secret")
-	if jwtSecret == "" {
-		u.log.Error("JWT Secret is not configured")
-		return nil, ErrInternalServer
-	}
-
-	signedToken, err := token.SignedString([]byte(jwtSecret))
+	signedToken, err := u.generateAccessToken(user)
 	if err != nil {
-		u.log.WithError(err).Error("RefreshToken: failed to sign token")
-		return nil, ErrInternalServer
+		return nil, err
 	}
 
 	return &LoginResponse{

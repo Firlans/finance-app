@@ -28,7 +28,7 @@ func AuthMiddleware(cfg *viper.Viper) fiber.Handler {
 				"request_id": c.Locals("request_id"),
 			})
 		}
-		tokenString := parts[1]
+		tokenString := strings.Clone(parts[1])
 
 		// 3. Check if token is blacklisted
 		if GetBlacklist().IsBlacklisted(tokenString) {
@@ -67,7 +67,7 @@ func AuthMiddleware(cfg *viper.Viper) fiber.Handler {
 		// 7. Simpan User ID & token ke Context
 		c.Locals("user_id", claims["sub"])
 		c.Locals("email", claims["email"])
-		c.Locals("access_token", tokenString) // For logout
+		c.Locals("access_token", tokenString) // For logout/refresh
 
 		// Store expiry for blacklist
 		if exp, ok := claims["exp"].(float64); ok {

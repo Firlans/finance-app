@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -121,7 +122,7 @@ var blacklist = &TokenBlacklist{
 func (tb *TokenBlacklist) Add(token string, expiry time.Time) {
 	tb.mu.Lock()
 	defer tb.mu.Unlock()
-	tb.tokens[token] = expiry
+	tb.tokens[strings.Clone(token)] = expiry
 
 	// Cleanup expired tokens
 	go tb.cleanup()
@@ -132,7 +133,7 @@ func (tb *TokenBlacklist) IsBlacklisted(token string) bool {
 	tb.mu.RLock()
 	defer tb.mu.RUnlock()
 
-	expiry, exists := tb.tokens[token]
+	expiry, exists := tb.tokens[strings.Clone(token)]
 	if !exists {
 		return false
 	}
