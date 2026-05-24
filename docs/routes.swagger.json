@@ -1,0 +1,2174 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Finance App Service API",
+    "version": "1.0.0",
+    "description": "OpenAPI documentation for all active routes in the finance-app-service-features project. Includes expected success responses, common error responses, and negative testing scenarios."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "Local development server"
+    }
+  ],
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "RequestIDMap": {
+        "type": "object",
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "example": "req-123e4567-e89b-12d3-a456-426614174000"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "Invalid request body"
+          },
+          "details": {
+            "type": "string",
+            "example": "Key: 'RegisterRequest.Email' Error:Field validation for 'Email' failed on the 'email' tag"
+          },
+          "request_id": {
+            "type": "string",
+            "example": "req-123e4567-e89b-12d3-a456-426614174000"
+          }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "ok"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ReadyResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "ready"
+          }
+        }
+      },
+      "UserResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "username": {
+            "type": "string",
+            "example": "tubagus_aldi"
+          },
+          "email": {
+            "type": "string",
+            "example": "tubagus@example.com"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-01-01T15:00:00Z"
+          }
+        }
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "required": ["username", "email", "password"],
+        "properties": {
+          "username": {
+            "type": "string",
+            "example": "tubagus_aldi"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "tubagus@example.com"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "example": "RahasiaNegara123!"
+          }
+        }
+      },
+      "RegisterResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/UserResponse"
+          },
+          "request_id": {
+            "type": "string",
+            "example": "req-123e4567-e89b-12d3-a456-426614174000"
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": ["email", "password"],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "tubagus@example.com"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "example": "RahasiaNegara123!"
+          }
+        }
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "access_token": {
+                "type": "string",
+                "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+              },
+              "token_type": {
+                "type": "string",
+                "example": "Bearer"
+              },
+              "user": {
+                "$ref": "#/components/schemas/UserResponse"
+              }
+            }
+          },
+          "request_id": {
+            "type": "string",
+            "example": "req-123e4567-e89b-12d3-a456-426614174000"
+          }
+        }
+      },
+      "ResetPasswordRequest": {
+        "type": "object",
+        "required": ["current_password", "new_password"],
+        "properties": {
+          "current_password": {
+            "type": "string",
+            "format": "password",
+            "example": "RahasiaNegara123!"
+          },
+          "new_password": {
+            "type": "string",
+            "format": "password",
+            "example": "RahasiaNegara456!"
+          }
+        }
+      },
+      "ForgetPasswordRequest": {
+        "type": "object",
+        "required": ["email"],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "tubagus@example.com"
+          }
+        }
+      },
+      "ForgotPasswordResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Password reset link sent to your email"
+          },
+          "request_id": {
+            "type": "string",
+            "example": "req-123e4567-e89b-12d3-a456-426614174000"
+          }
+        }
+      },
+      "ResetPasswordWithTokenRequest": {
+        "type": "object",
+        "required": ["token", "new_password", "confirm_password"],
+        "properties": {
+          "token": {
+            "type": "string",
+            "format": "uuid",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "new_password": {
+            "type": "string",
+            "format": "password",
+            "example": "RahasiaNegara456!"
+          },
+          "confirm_password": {
+            "type": "string",
+            "format": "password",
+            "example": "RahasiaNegara456!"
+          }
+        }
+      },
+      "GenericMessageResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Password reset successful"
+          },
+          "request_id": {
+            "type": "string",
+            "example": "req-123e4567-e89b-12d3-a456-426614174000"
+          }
+        }
+      },
+      "Account": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32",
+            "example": 123
+          },
+          "user_id": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "account_name": {
+            "type": "string",
+            "example": "Personal Savings"
+          },
+          "description": {
+            "type": "string",
+            "example": "Primary savings account"
+          },
+          "balance": {
+            "type": "number",
+            "format": "double",
+            "example": 2500.75
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-10-01T10:00:00Z"
+          }
+        }
+      },
+      "CreateAccountRequest": {
+        "type": "object",
+        "required": ["account_name", "balance"],
+        "properties": {
+          "account_name": {
+            "type": "string",
+            "example": "Personal Savings"
+          },
+          "description": {
+            "type": "string",
+            "example": "Primary savings account"
+          },
+          "balance": {
+            "type": "number",
+            "format": "double",
+            "example": 2500.75
+          }
+        }
+      },
+      "CreateAccountResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Create account"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int32",
+                "example": 123
+              }
+            }
+          },
+          "request_id": {
+            "type": "string",
+            "example": "req-123e4567-e89b-12d3-a456-426614174000"
+          }
+        }
+      },
+      "AccountListResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Get all accounts"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Account"
+            }
+          },
+          "request_id": {
+            "type": "string",
+            "example": "req-123e4567-e89b-12d3-a456-426614174000"
+          }
+        }
+      },
+      "Transaction": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32",
+            "example": 345
+          },
+          "amount": {
+            "type": "number",
+            "format": "double",
+            "example": 125.50
+          },
+          "transaction_type": {
+            "type": "string",
+            "example": "debit"
+          },
+          "description": {
+            "type": "string",
+            "example": "Office supplies"
+          },
+          "account_id": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "user_id": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-11-01T12:00:00Z"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-11-01T12:00:00Z"
+          }
+        }
+      },
+      "CreateTransactionRequest": {
+        "type": "object",
+        "required": ["amount", "transaction_type", "account_id"],
+        "properties": {
+          "amount": {
+            "type": "number",
+            "format": "double",
+            "example": 125.50
+          },
+          "transaction_type": {
+            "type": "string",
+            "example": "debit",
+            "enum": ["debit", "credit"]
+          },
+          "description": {
+            "type": "string",
+            "example": "Office supplies"
+          },
+          "account_id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        }
+      },
+      "UpdateTransactionRequest": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "format": "double",
+            "example": 200.00
+          },
+          "transaction_type": {
+            "type": "string",
+            "example": "credit",
+            "enum": ["debit", "credit"]
+          },
+          "description": {
+            "type": "string",
+            "example": "Invoice payment"
+          },
+          "account_id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        }
+      },
+      "TransactionListResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Get all transactions"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Transaction"
+            }
+          },
+          "request_id": {
+            "type": "string",
+            "example": "req-123e4567-e89b-12d3-a456-426614174000"
+          }
+        }
+      },
+      "TransactionDetailResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Get transaction by ID"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Transaction"
+          },
+          "request_id": {
+            "type": "string",
+            "example": "req-123e4567-e89b-12d3-a456-426614174000"
+          }
+        }
+      },
+      "Category": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Food & Beverage"
+          },
+          "description": {
+            "type": "string",
+            "example": "Daily meals and drinks"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-05-24T10:00:00Z"
+          }
+        }
+      },
+      "CreateCategoryRequest": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Food & Beverage"
+          },
+          "description": {
+            "type": "string",
+            "example": "Daily meals and drinks"
+          }
+        }
+      },
+      "UpdateCategoryRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Transportation"
+          },
+          "description": {
+            "type": "string",
+            "example": "Fuel, toll, and parking"
+          }
+        }
+      },
+      "CreateCategoryResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Create category"
+          },
+          "data": {
+            "type": "integer",
+            "format": "int32",
+            "example": 1
+          },
+          "request_id": {
+            "type": "string",
+            "example": "req-123e4567-e89b-12d3-a456-426614174000"
+          }
+        }
+      },
+      "CategoryListResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Get all categories"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Category"
+            }
+          }
+        }
+      },
+      "CategoryDetailResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Get category by ID"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Category"
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": ["System"],
+        "summary": "Health check",
+        "description": "Returns service health status without authentication.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Service is healthy.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Not applicable for health endpoint because it does not accept a request body."
+        ]
+      }
+    },
+    "/ready": {
+      "get": {
+        "tags": ["System"],
+        "summary": "Readiness probe",
+        "description": "Checks database readiness and returns service readiness status.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Service is ready.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadyResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database not available.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "database not available",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Database connection unavailable returns 503 with error detail.",
+          "Invalid method returns 405 if other HTTP verbs are used."
+        ]
+      }
+    },
+    "/api/users/register": {
+      "post": {
+        "tags": ["User"],
+        "summary": "Register new user",
+        "description": "Create a new user account with username, email, and password.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              },
+              "example": {
+                "username": "tubagus_aldi",
+                "email": "tubagus@example.com",
+                "password": "RahasiaNegara123!"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User registered successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterResponse"
+                },
+                "example": {
+                  "data": {
+                    "id": "550e8400-e29b-41d4-a716-446655440000",
+                    "username": "tubagus_aldi",
+                    "email": "tubagus@example.com",
+                    "created_at": "2025-01-01T15:00:00Z"
+                  },
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed or invalid JSON.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Validation failed",
+                  "details": "Key: 'RegisterRequest.Email' Error:Field validation for 'Email' failed on the 'email' tag",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Email or username already taken.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Email already taken",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Send invalid JSON without required fields returns 400.",
+          "Send malformed email returns 400 validation error.",
+          "Attempt registration with duplicate email or username returns 409."
+        ]
+      }
+    },
+    "/api/users/login": {
+      "post": {
+        "tags": ["User"],
+        "summary": "Login user",
+        "description": "Authenticate user and return JWT access token.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              },
+              "example": {
+                "email": "tubagus@example.com",
+                "password": "RahasiaNegara123!"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User authenticated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                },
+                "example": {
+                  "data": {
+                    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                    "token_type": "Bearer",
+                    "user": {
+                      "id": "550e8400-e29b-41d4-a716-446655440000",
+                      "username": "tubagus_aldi",
+                      "email": "tubagus@example.com",
+                      "created_at": "2025-01-01T15:00:00Z"
+                    }
+                  },
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body or validation failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Invalid request Body",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Invalid credentials",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Send empty password or invalid email returns 400.",
+          "Provide wrong credentials returns 401.",
+          "Omit body entirely returns 400 with invalid request error."
+        ]
+      }
+    },
+    "/api/users/logout": {
+      "post": {
+        "tags": ["User"],
+        "summary": "Logout user",
+        "description": "Invalidate current JWT session token.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Logout successful.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericMessageResponse"
+                },
+                "example": {
+                  "message": "Logout successful. Token has been invalidated.",
+                  "user_id": "550e8400-e29b-41d4-a716-446655440000",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or missing token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Unauthorized",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Call without Authorization header returns 401.",
+          "Call with expired or invalid token returns 401.",
+          "Call with malformed JWT returns 401."
+        ]
+      }
+    },
+    "/api/users/current": {
+      "get": {
+        "tags": ["User"],
+        "summary": "Get current user profile",
+        "description": "Retrieve profile information for the authenticated user.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User profile returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterResponse"
+                },
+                "example": {
+                  "data": {
+                    "id": "550e8400-e29b-41d4-a716-446655440000",
+                    "username": "tubagus_aldi",
+                    "email": "tubagus@example.com",
+                    "created_at": "2025-01-01T15:00:00Z"
+                  },
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized access.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Unauthorized",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Call with no Authorization header returns 401.",
+          "Call with invalid user_id in JWT returns 401 or error response."
+        ]
+      }
+    },
+    "/api/users/change-password": {
+      "post": {
+        "tags": ["User"],
+        "summary": "Change password",
+        "description": "Update the authenticated user's password.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordRequest"
+              },
+              "example": {
+                "current_password": "RahasiaNegara123!",
+                "new_password": "RahasiaNegara456!"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password changed successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericMessageResponse"
+                },
+                "example": {
+                  "message": "Password reset successful",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid current password or unauthorized.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Invalid current password",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Send wrong current_password returns 401.",
+          "Send missing new_password returns 400 validation error.",
+          "Send malformed JSON returns 400."
+        ]
+      }
+    },
+    "/api/users/forget-password": {
+      "post": {
+        "tags": ["User"],
+        "summary": "Request password reset",
+        "description": "Send a password reset email link to the user's email address.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgetPasswordRequest"
+              },
+              "example": {
+                "email": "tubagus@example.com"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password reset link sent.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForgotPasswordResponse"
+                },
+                "example": {
+                  "message": "Password reset link sent to your email",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Send invalid email format returns 400.",
+          "Send empty body returns 400.",
+          "Send valid email but broken SMTP or DB path returns 500."
+        ]
+      }
+    },
+    "/api/users/reset-password": {
+      "post": {
+        "tags": ["User"],
+        "summary": "Reset password with token",
+        "description": "Reset a user's password using a password reset token.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordWithTokenRequest"
+              },
+              "example": {
+                "token": "550e8400-e29b-41d4-a716-446655440000",
+                "new_password": "RahasiaNegara456!",
+                "confirm_password": "RahasiaNegara456!"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password reset successful.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericMessageResponse"
+                },
+                "example": {
+                  "message": "Password reset successful",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid token or request data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Invalid password reset token",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found for token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "User not found",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Send expired or invalid token returns 400.",
+          "Send unmatched confirm_password returns 400.",
+          "Send token for missing user returns 404."
+        ]
+      }
+    },
+    "/api/accounts": {
+      "get": {
+        "tags": ["Accounts"],
+        "summary": "Get all accounts",
+        "description": "Retrieve all accounts belonging to the authenticated user.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Accounts returned successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized access.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Call without Authorization header returns 401.",
+          "Call with invalid bearer token returns 401."
+        ]
+      },
+      "post": {
+        "tags": ["Accounts"],
+        "summary": "Create an account",
+        "description": "Create a new account for the authenticated user.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAccountRequest"
+              },
+              "example": {
+                "account_name": "Personal Savings",
+                "description": "Primary savings account",
+                "balance": 2500.75
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Account created successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateAccountResponse"
+                },
+                "example": {
+                  "message": "Create account",
+                  "data": {
+                    "id": 123
+                  },
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Send missing account_name returns 400.",
+          "Send negative balance returns 400 validation error.",
+          "Call without auth returns 401."
+        ]
+      }
+    },
+    "/api/accounts/{id}": {
+      "put": {
+        "tags": ["Accounts"],
+        "summary": "Update account",
+        "description": "Update an existing account by its ID.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "Account ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAccountRequest"
+              },
+              "example": {
+                "account_name": "Updated Savings",
+                "description": "Updated description",
+                "balance": 3000.00
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Account updated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericMessageResponse"
+                },
+                "example": {
+                  "message": "Update account",
+                  "data": {
+                    "id": 123
+                  },
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid account ID or request body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized access.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Send non-numeric id returns 400.",
+          "Send invalid request body returns 400.",
+          "Call without auth returns 401."
+        ]
+      },
+      "delete": {
+        "tags": ["Accounts"],
+        "summary": "Delete account",
+        "description": "Delete an account by its ID.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "Account ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Account deleted successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericMessageResponse"
+                },
+                "example": {
+                  "message": "Delete account",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid account ID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized access.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Send invalid account id returns 400.",
+          "Call without auth returns 401."
+        ]
+      }
+    },
+    "/api/transactions": {
+      "get": {
+        "tags": ["Transactions"],
+        "summary": "Get all transactions",
+        "description": "Retrieve all transactions for the authenticated user.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transactions returned successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized access.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Call without Authorization header returns 401.",
+          "Call with invalid token returns 401."
+        ]
+      },
+      "post": {
+        "tags": ["Transactions"],
+        "summary": "Create transaction",
+        "description": "Create a new transaction for the authenticated user.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTransactionRequest"
+              },
+              "example": {
+                "amount": 125.50,
+                "transaction_type": "debit",
+                "description": "Office supplies",
+                "account_id": "550e8400-e29b-41d4-a716-446655440000"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Transaction created successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericMessageResponse"
+                },
+                "example": {
+                  "message": "Create transaction",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized access.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Send missing required fields returns 400.",
+          "Send invalid transaction_type value returns 400.",
+          "Call without auth returns 401."
+        ]
+      }
+    },
+    "/api/transactions/{id}": {
+      "get": {
+        "tags": ["Transactions"],
+        "summary": "Get transaction by ID",
+        "description": "Retrieve a single transaction by its ID.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "Transaction ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transaction returned successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionDetailResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid transaction ID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized access.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Transaction not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Transaction not found",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Send invalid ID format returns 400.",
+          "Request missing auth returns 401.",
+          "Request non-existing transaction returns 404."
+        ]
+      },
+      "put": {
+        "tags": ["Transactions"],
+        "summary": "Update transaction",
+        "description": "Update a transaction by its ID.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "Transaction ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTransactionRequest"
+              },
+              "example": {
+                "amount": 200.00,
+                "transaction_type": "credit",
+                "description": "Invoice payment",
+                "account_id": "550e8400-e29b-41d4-a716-446655440000"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transaction updated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericMessageResponse"
+                },
+                "example": {
+                  "message": "Update transaction",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized access.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Send invalid id returns 400.",
+          "Send invalid transaction_type returns 400.",
+          "Call without auth returns 401."
+        ]
+      },
+      "delete": {
+        "tags": ["Transactions"],
+        "summary": "Delete transaction",
+        "description": "Delete a transaction by its ID.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "Transaction ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transaction deleted successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericMessageResponse"
+                },
+                "example": {
+                  "message": "Delete transaction",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid transaction ID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized access.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Send invalid id returns 400.",
+          "Call without auth returns 401."
+        ]
+      }
+    },
+    "/api/categories": {
+      "get": {
+        "tags": ["Categories"],
+        "summary": "Get all categories",
+        "description": "Retrieve all categories belonging to the authenticated user.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Categories returned successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized access.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Call without Authorization header returns 401.",
+          "Call with invalid bearer token returns 401."
+        ]
+      },
+      "post": {
+        "tags": ["Categories"],
+        "summary": "Create a category",
+        "description": "Create a new category for the authenticated user.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCategoryRequest"
+              },
+              "example": {
+                "name": "Food & Beverage",
+                "description": "Daily meals and drinks"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Category created successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateCategoryResponse"
+                },
+                "example": {
+                  "message": "Create category",
+                  "data": 1,
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized access.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Send missing name field returns 400 validation error.",
+          "Send malformed JSON returns 400.",
+          "Call without auth returns 401."
+        ]
+      }
+    },
+    "/api/categories/{id}": {
+      "get": {
+        "tags": ["Categories"],
+        "summary": "Get category by ID",
+        "description": "Retrieve a single category by its ID.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "Category ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Category returned successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryDetailResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid category ID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Invalid category ID",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized access.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Category not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Category not found",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Send non-numeric ID returns 400.",
+          "Request without auth returns 401.",
+          "Request non-existing category returns 404."
+        ]
+      },
+      "put": {
+        "tags": ["Categories"],
+        "summary": "Update category",
+        "description": "Update an existing category by its ID.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "Category ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCategoryRequest"
+              },
+              "example": {
+                "name": "Transportation",
+                "description": "Fuel, toll, and parking"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Category updated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericMessageResponse"
+                },
+                "example": {
+                  "message": "Update category",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid category ID or request body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized access.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Send non-numeric ID returns 400.",
+          "Send malformed JSON returns 400.",
+          "Call without auth returns 401."
+        ]
+      },
+      "delete": {
+        "tags": ["Categories"],
+        "summary": "Delete category",
+        "description": "Delete a category by its ID.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "Category ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Category deleted successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericMessageResponse"
+                },
+                "example": {
+                  "message": "Delete category",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid category ID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Invalid category ID",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized access.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Send non-numeric ID returns 400.",
+          "Call without auth returns 401."
+        ]
+      }
+    }
+  }
+}

@@ -8,7 +8,6 @@ import (
 	"syscall"
 	"time"
 
-	_ "github.com/TubagusAldiMY/finance-tracker-app/backend/docs"
 	"github.com/TubagusAldiMY/finance-tracker-app/backend/internal/infra"
 	fiberSwagger "github.com/swaggo/fiber-swagger"
 )

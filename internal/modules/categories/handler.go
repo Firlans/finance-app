@@ -1,11 +1,6 @@
-package transactions
+package categories
 
-import (
-	"strconv"
-	"time"
-
-	"github.com/gofiber/fiber/v2"
-)
+import "github.com/gofiber/fiber/v2"
 
 type Handler struct {
 	useCase UseCase
@@ -18,16 +13,16 @@ func NewHandler(useCase UseCase) *Handler {
 }
 
 func (h *Handler) RegisterRoutes(app *fiber.App, authMiddleware fiber.Handler, rateLimiter fiber.Handler) {
-	transactionsGroup := app.Group("api/transactions", authMiddleware)
+	categoriesGroup := app.Group("api/categories", authMiddleware)
 
-	transactionsGroup.Get("/", h.getTransactions)
-	transactionsGroup.Get("/:id", h.getTransactionByID)
-	transactionsGroup.Post("/", h.createTransaction)
-	transactionsGroup.Put("/:id", h.updateTransaction)
-	transactionsGroup.Delete("/:id", h.deleteTransaction)
+	categoriesGroup.Get("/", h.getCategories)
+	categoriesGroup.Get("/:id", h.getCategoryByID)
+	categoriesGroup.Post("/", h.createCategory)
+	categoriesGroup.Put("/:id", h.updateCategory)
+	categoriesGroup.Delete("/:id", h.deleteCategory)
 }
 
-func (h *Handler) getTransactions(c *fiber.Ctx) error {
+func (h *Handler) getCategories(c *fiber.Ctx) error {
 	userID, ok := c.Locals("user_id").(string)
 	if !ok || userID == "" {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
@@ -36,7 +31,7 @@ func (h *Handler) getTransactions(c *fiber.Ctx) error {
 		})
 	}
 
-	res, err := h.useCase.GetTransactions(c.Context(), userID)
+	res, err := h.useCase.GetCategories(c.Context(), &userID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error":      err.Error(),
@@ -45,21 +40,20 @@ func (h *Handler) getTransactions(c *fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"message": "Get all transactions",
+		"message": "Get all categories",
 		"data":    res,
 	})
 }
-
-func (h *Handler) getTransactionByID(c *fiber.Ctx) error {
-	id, err := strconv.Atoi(c.Params("id"))
+func (h *Handler) getCategoryByID(c *fiber.Ctx) error {
+	id, err := c.ParamsInt("id")
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error":      "Invalid transaction ID",
+			"error":      "Invalid category ID",
 			"request_id": c.Locals("request_id"),
 		})
 	}
 
-	res, err := h.useCase.GetTransactionByID(c.Context(), id)
+	res, err := h.useCase.GetCategoryByID(c.Context(), id)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error":      err.Error(),
@@ -69,19 +63,18 @@ func (h *Handler) getTransactionByID(c *fiber.Ctx) error {
 
 	if res == nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error":      "Transaction not found",
+			"error":      "Category not found",
 			"request_id": c.Locals("request_id"),
 		})
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"message": "Get transaction by ID",
+		"message": "Get category by ID",
 		"data":    res,
 	})
 }
-
-func (h *Handler) createTransaction(c *fiber.Ctx) error {
-	var req CreateTransactionRequest
+func (h *Handler) createCategory(c *fiber.Ctx) error {
+	var req CreateCategoryRequest
 
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -98,19 +91,13 @@ func (h *Handler) createTransaction(c *fiber.Ctx) error {
 		})
 	}
 
-	req.UserID = userID
-	now := time.Now().UTC()
-	transaction := &Transaction{
-		Amount:          req.Amount,
-		TransactionType: req.TransactionType,
-		Description:     req.Description,
-		AccountID:       req.AccountID,
-		CategoryID:      req.CategoryID,
-		UserID:          userID,
-		CreatedAt:       now,
-		UpdatedAt:       now,
+	category := &Category{
+		Name:        req.Name,
+		Description: req.Description,
+		UserID:      userID,
 	}
-	err := h.useCase.Save(c.Context(), transaction)
+
+	err := h.useCase.Save(c.Context(), category)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error":      err.Error(),
@@ -119,27 +106,28 @@ func (h *Handler) createTransaction(c *fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"message": "Create transaction",
+		"message": "Create category",
+		"data":    category.ID,
 	})
 }
+func (h *Handler) updateCategory(c *fiber.Ctx) error {
+	userID, ok := c.Locals("user_id").(string)
+	if !ok || userID == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error":      "User ID not found in JWT token",
+			"request_id": c.Locals("request_id"),
+		})
+	}
 
-func (h *Handler) updateTransaction(c *fiber.Ctx) error {
-	id, err := strconv.Atoi(c.Params("id"))
+	id, err := c.ParamsInt("id")
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error":      "Invalid transaction ID",
+			"error":      "Invalid category ID",
 			"request_id": c.Locals("request_id"),
 		})
 	}
 
-	if id == 0 {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error":      "Transaction ID is required",
-			"request_id": c.Locals("request_id"),
-		})
-	}
-
-	var req UpdateTransactionRequest
+	var req UpdateCategoryRequest
 
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -148,17 +136,13 @@ func (h *Handler) updateTransaction(c *fiber.Ctx) error {
 		})
 	}
 
-	req.ID = id
-	transaction := &Transaction{
-		ID:              req.ID,
-		Amount:          *req.Amount,
-		TransactionType: *req.TransactionType,
-		Description:     *req.Description,
-		CategoryID:      *req.CategoryID,
-		AccountID:       *req.AccountID,
+	category := &Category{
+		ID:          id,
+		Name:        *req.Name,
+		Description: req.Description,
+		UserID:      userID,
 	}
-
-	err = h.useCase.UpdateTransaction(c.Context(), transaction)
+	err = h.useCase.UpdateCategory(c.Context(), category)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error":      err.Error(),
@@ -167,20 +151,27 @@ func (h *Handler) updateTransaction(c *fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"message": "Update transaction",
+		"message": "Update category",
 	})
 }
-
-func (h *Handler) deleteTransaction(c *fiber.Ctx) error {
-	id, err := strconv.Atoi(c.Params("id"))
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error":      "Invalid transaction ID",
+func (h *Handler) deleteCategory(c *fiber.Ctx) error {
+	userID, ok := c.Locals("user_id").(string)
+	if !ok || userID == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error":      "User ID not found in JWT token",
 			"request_id": c.Locals("request_id"),
 		})
 	}
 
-	err = h.useCase.DeleteTransaction(c.Context(), id)
+	id, err := c.ParamsInt("id")
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":      "Invalid category ID",
+			"request_id": c.Locals("request_id"),
+		})
+	}
+
+	err = h.useCase.DeleteCategory(c.Context(), id)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error":      err.Error(),
@@ -189,6 +180,6 @@ func (h *Handler) deleteTransaction(c *fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"message": "Delete transaction",
+		"message": "Delete category",
 	})
 }
