@@ -1,7 +1,9 @@
 <script setup>
 import { reactive, ref, computed, onMounted } from 'vue'
 import BaseInput from '@packages/components/base/BaseInput.vue'
+import BaseLookup from '@packages/components/base/BaseLookup.vue'
 import { Notification } from '@packages/utils/Notification.js'
+import { Config } from '@/Config.js'
 import {
   createTransaction,
   deleteTransaction,
@@ -22,8 +24,11 @@ const form = reactive({
   description: '',
   amount: '',
   type: 'debit',
-  account_id: ''
+  account_id: '',
+  category_id: ''
 })
+
+const categoriesLookupRoute = `${Config.url}/categories`
 
 const typeOptions = [
   { value: 'debit', label: 'Expense' },
@@ -71,6 +76,7 @@ const resetForm = () => {
   form.amount = ''
   form.type = 'debit'
   form.account_id = accounts.value.length ? String(accounts.value[0].id) : ''
+  form.category_id = ''
   editingId.value = null
 }
 
@@ -88,6 +94,7 @@ const openEditForm = (transaction) => {
   form.amount = transaction.amount != null ? String(transaction.amount) : ''
   form.type = transaction.type || 'debit'
   form.account_id = transaction.account_id ? String(transaction.account_id) : accounts.value.length ? String(accounts.value[0].id) : ''
+  form.category_id = transaction.category_id ? String(transaction.category_id) : transaction.category?.id ? String(transaction.category.id) : ''
   editingId.value = transaction.id
   isFormOpen.value = true
 }
@@ -114,7 +121,8 @@ const handleSubmit = async (event) => {
     description: form.description.trim(),
     amount: Number(form.amount),
     transaction_type: form.type,
-    account_id: form.account_id
+    account_id: Number(form.account_id),
+    category_id: form.category_id ? Number(form.category_id) : null
   }
 
   try {
@@ -224,6 +232,16 @@ onMounted(async () => {
             </option>
           </select>
         </div>
+
+        <BaseLookup
+          v-model="form.category_id"
+          label="Kategori"
+          placeholder="Pilih kategori"
+          :route="categoriesLookupRoute"
+          item-key="id"
+          display="name"
+          :auth="true"
+        />
 
         <BaseInput v-model="form.amount" label="Jumlah" type="number" placeholder="0" required
           :validate="['Jumlah harus lebih besar dari 0', numeric]" />
