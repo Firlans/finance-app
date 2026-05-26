@@ -1,0 +1,1 @@
+import{c as r,a as c,o as n}from"./index-BH5IXVSs.js";const d=(o,e)=>{const t=o.__vccOpts||o;for(const[s,a]of e)t[s]=a;return t},_={},l={class:"dashboard-page p-6"};function f(o,e){return n(),r("section",l,[...e[0]||(e[0]=[c("h1",{class:"text-2xl font-semibold mb-4"},"Dashboard",-1)])])}const i=d(_,[["render",f]]);export{i as default};
