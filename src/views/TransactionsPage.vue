@@ -31,8 +31,8 @@ const form = reactive({
 const categoriesLookupRoute = `${Config.url}/categories`
 
 const typeOptions = [
-  { value: 'debit', label: 'Expense' },
-  { value: 'credit', label: 'Income' }
+  { value: 'credit', label: 'Expense' },
+  { value: 'debit', label: 'Income' }
 ]
 
 const filteredTransactions = computed(() => {
@@ -65,7 +65,12 @@ const loadAccounts = async () => {
 
 const loadTransactions = async () => {
   try {
-    transactions.value = await getTransactions(token)
+    const transactionsData = await getTransactions(token)
+    console.log('Loaded transactions:', transactionsData)
+    transactions.value = transactionsData.map((transaction) => ({
+      ...transaction,
+      type: transaction.transaction_type
+    }))
   } catch (error) {
     notification.showError(error?.message || 'Gagal memuat transaksi')
   }
@@ -285,10 +290,10 @@ onMounted(async () => {
               </div>
               <div class="text-right shrink-0">
                 <p class="font-semibold text-sm text-slate-900">{{ formatCurrency(transaction.amount) }}</p>
-                <span :class="transaction.type === 'credit'
+                <span :class="transaction.type === 'debit'
                   ? 'rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700'
                   : 'rounded-full bg-rose-100 px-2 py-0.5 text-xs text-rose-700'">
-                  {{ transaction.type === 'credit' ? 'Income' : 'Expense' }}
+                  {{ transaction.type === 'debit' ? 'Income' : 'Expense' }}
                 </span>
               </div>
             </div>
@@ -325,10 +330,10 @@ onMounted(async () => {
                 <td class="px-4 py-4 text-slate-900">{{ transaction.description }}</td>
                 <td class="px-4 py-4 text-slate-600">{{ getAccountName(transaction.account_id) }}</td>
                 <td class="px-4 py-4">
-                  <span :class="transaction.type === 'credit'
+                  <span :class="transaction.type === 'debit'
                     ? 'rounded-full bg-emerald-100 px-3 py-1 text-xs text-emerald-700'
                     : 'rounded-full bg-rose-100 px-3 py-1 text-xs text-rose-700'">
-                    {{ transaction.type === 'credit' ? 'Income' : 'Expense' }}
+                    {{ transaction.type === 'debit' ? 'Income' : 'Expense' }}
                   </span>
                 </td>
                 <td class="px-4 py-4 text-slate-600">{{ formatDate(transaction.created_at) }}</td>
