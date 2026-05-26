@@ -35,10 +35,26 @@ func (r *repository) Save(ctx context.Context, account *CreateAccountRequest) er
 }
 
 func (r *repository) FindByID(ctx context.Context, id int) (*Account, error) {
-	query := "select a.id, a.user_id, a.account_name, a.description, a.balance, a.created_at from accounts a where a.id = $1"
+	query := `
+		select 	a.id, 
+				a.user_id, 
+				a.account_name, 
+				a.description,
+				a.balance + coalesce(sum(
+					case
+						when t.transaction_type = 'debit' then t.amount
+						when t.transaction_type = 'credit' then -t.amount
+						else 0
+					end
+				), 0) as balance,
+				a.balance as initial_balance,
+				a.created_at 
+		from accounts a 
+		left join transactions t on a.id = t.account_id
+		where a.id = $1`
 	row := r.QueryRow(ctx, query, id)
 	var account Account
-	err := row.Scan(&account.ID, &account.UserID, &account.AccountName, &account.Description, &account.Balance, &account.CreatedAt)
+	err := row.Scan(&account.ID, &account.UserID, &account.AccountName, &account.Description, &account.Balance, &account.InitialBalance, &account.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +62,25 @@ func (r *repository) FindByID(ctx context.Context, id int) (*Account, error) {
 }
 
 func (r *repository) FindByUserID(ctx context.Context, userID string) (*[]Account, error) {
-	query := "select a.id, a.user_id, a.account_name, a.description, a.balance, a.created_at from accounts a where a.user_id = $1"
+	query := `
+	select 	a.id, 
+			a.user_id, 
+			a.account_name, 
+			a.description, 
+			a.balance + coalesce(sum(
+				case
+					when t.transaction_type = 'debit' then t.amount
+					when t.transaction_type = 'credit' then -t.amount
+					else 0
+				end
+			), 0) as balance,
+			a.balance as initial_balance,
+			a.created_at
+	from accounts a
+	left join transactions t on a.id = t.account_id
+	where a.user_id = $1
+	group by a.id, a.user_id, a.account_name, a.description, a.balance, a.created_at
+	`
 	accounts := make([]Account, 0)
 	rows, err := r.Query(ctx, query, userID)
 	if err != nil {
@@ -56,7 +90,7 @@ func (r *repository) FindByUserID(ctx context.Context, userID string) (*[]Accoun
 
 	for rows.Next() {
 		var account Account
-		err := rows.Scan(&account.ID, &account.UserID, &account.AccountName, &account.Description, &account.Balance, &account.CreatedAt)
+		err := rows.Scan(&account.ID, &account.UserID, &account.AccountName, &account.Description, &account.Balance, &account.InitialBalance, &account.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
