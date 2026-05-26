@@ -51,7 +51,7 @@ const openNewForm = () => { resetForm(); isFormOpen.value = true }
 const openEditForm = (account) => {
   form.account_name = account.account_name || ''
   form.description = account.description || ''
-  form.balance = account.balance != null ? account.balance : 0
+  form.balance = account.initial_balance != null ? account.initial_balance :  0
   editingId.value = account.id
   isFormOpen.value = true
 }
