@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref, computed, onMounted } from 'vue'
+import { reactive, ref, computed, onMounted, nextTick } from 'vue'
 import BaseInput from '@packages/components/base/BaseInput.vue'
 import { Notification } from '@packages/utils/Notification.js'
 import { getCategories, createCategory, updateCategory, deleteCategory } from '@/DataService.js'
@@ -11,6 +11,7 @@ const categories = ref([])
 const searchQuery = ref('')
 const isFormOpen = ref(false)
 const editingId = ref(null)
+const formRef = ref(null)
 
 const form = reactive({ name: '', description: '' })
 
@@ -43,12 +44,18 @@ const resetForm = () => {
   editingId.value = null
 }
 
-const openNewForm = () => { resetForm(); isFormOpen.value = true }
-const openEditForm = (category) => {
+const focusFormField = async () => {
+  await nextTick()
+  formRef.value?.querySelector('input, textarea, select')?.focus()
+}
+
+const openNewForm = async () => { resetForm(); isFormOpen.value = true; await focusFormField() }
+const openEditForm = async (category) => {
   form.name = category.name || ''
   form.description = category.description || ''
   editingId.value = category.id
   isFormOpen.value = true
+  await focusFormField()
 }
 const closeForm = () => { isFormOpen.value = false; resetForm() }
 
@@ -122,7 +129,7 @@ onMounted(() => {
         </div>
         <button @click="closeForm" class="text-sm font-medium text-slate-600 transition hover:text-slate-900">Batal</button>
       </div>
-      <form @submit.prevent="handleSubmit" class="grid gap-5 pt-6 md:grid-cols-2">
+      <form ref="formRef" @submit.prevent="handleSubmit" class="grid gap-5 pt-6 md:grid-cols-2">
         <BaseInput v-model="form.name" label="Nama Kategori" placeholder="Contoh: Makanan & Minuman"
           required
           :validate="['Nama kategori wajib diisi', validCategoryName]" />

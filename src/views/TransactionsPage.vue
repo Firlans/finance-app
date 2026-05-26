@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref, computed, onMounted } from 'vue'
+import { reactive, ref, computed, onMounted, nextTick } from 'vue'
 import BaseInput from '@packages/components/base/BaseInput.vue'
 import BaseLookup from '@packages/components/base/BaseLookup.vue'
 import { Notification } from '@packages/utils/Notification.js'
@@ -18,6 +18,7 @@ const accounts = ref([])
 const searchQuery = ref('')
 const isFormOpen = ref(false)
 const editingId = ref(null)
+const formRef = ref(null)
 const token = localStorage.getItem('access_token')
 
 const form = reactive({
@@ -85,16 +86,23 @@ const resetForm = () => {
   editingId.value = null
 }
 
-const openNewForm = () => {
+const focusFormField = async () => {
+  await nextTick()
+  formRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  formRef.value?.querySelector('input, select, textarea, button')?.focus()
+}
+
+const openNewForm = async () => {
   if (!accounts.value.length) {
     notification.showError('Silakan buat akun terlebih dahulu sebelum menambahkan transaksi')
     return
   }
   resetForm()
   isFormOpen.value = true
+  await focusFormField()
 }
 
-const openEditForm = (transaction) => {
+const openEditForm = async (transaction) => {
   form.description = transaction.description || ''
   form.amount = transaction.amount != null ? String(transaction.amount) : ''
   form.type = transaction.type || 'debit'
@@ -102,6 +110,7 @@ const openEditForm = (transaction) => {
   form.category_id = transaction.category_id ? String(transaction.category_id) : transaction.category?.id ? String(transaction.category.id) : ''
   editingId.value = transaction.id
   isFormOpen.value = true
+  await focusFormField()
 }
 
 const closeForm = () => {
@@ -179,8 +188,6 @@ const formatDate = (value) => {
   })
 }
 
-const accountOptions = computed(() => accounts.value)
-
 onMounted(async () => {
   if (!token) {
     notification.showError('Token pengguna tidak ditemukan. Silakan login kembali.')
@@ -223,25 +230,27 @@ onMounted(async () => {
           class="text-sm font-medium text-slate-600 transition hover:text-slate-900">Batal</button>
       </div>
 
-      <form @submit.prevent="handleSubmit" class="grid gap-5 pt-6 md:grid-cols-2">
+      <form ref="formRef" @submit.prevent="handleSubmit" class="grid gap-5 pt-6 md:grid-cols-2">
         <BaseInput v-model="form.description" label="Deskripsi" placeholder="Contoh: Beli makan siang"
           required
           :validate="['Deskripsi wajib diisi', validDescription]" />
 
-        <div class="space-y-1">
-          <label class="block text-sm font-medium text-slate-700">Akun</label>
-          <select v-model="form.account_id" required
-            class="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
-            <option v-for="account in accountOptions" :key="account.id" :value="String(account.id)">
-              {{ account.account_name }}
-            </option>
-          </select>
-        </div>
+        <BaseLookup
+          v-model="form.account_id"
+          label="Akun"
+          placeholder="Pilih akun"
+          required
+          :route="`${Config.url}/accounts`"
+          item-key="id"
+          display="account_name"
+          :auth="true"
+        />
 
         <BaseLookup
           v-model="form.category_id"
           label="Kategori"
           placeholder="Pilih kategori"
+          required
           :route="categoriesLookupRoute"
           item-key="id"
           display="name"

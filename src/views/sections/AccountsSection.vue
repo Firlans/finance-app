@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref, computed, onMounted } from 'vue'
+import { reactive, ref, computed, onMounted, nextTick } from 'vue'
 import BaseInput from '@packages/components/base/BaseInput.vue'
 import { Notification } from '@packages/utils/Notification.js'
 import { createAccount, deleteAccount, getAccounts, updateAccount } from '@/DataService.js'
@@ -11,6 +11,7 @@ const accounts = ref([])
 const searchQuery = ref('')
 const isFormOpen = ref(false)
 const editingId = ref(null)
+const formRef = ref(null)
 
 const form = reactive({ account_name: '', description: '', balance: '' })
 
@@ -19,6 +20,10 @@ const filteredAccounts = computed(() => {
   return accounts.value.filter((a) =>
     !q || [a.account_name, a.description].join(' ').toLowerCase().includes(q)
   )
+})
+
+const totalBalance = computed(() => {
+  return accounts.value.reduce((sum, account) => sum + (Number(account.balance) || 0), 0)
 })
 
 const formTitle = computed(() => (editingId.value ? 'Edit Akun' : 'Tambah Akun'))
@@ -47,13 +52,19 @@ const resetForm = () => {
   editingId.value = null
 }
 
-const openNewForm = () => { resetForm(); isFormOpen.value = true }
-const openEditForm = (account) => {
+const focusFormField = async () => {
+  await nextTick()
+  formRef.value?.querySelector('input, textarea, select')?.focus()
+}
+
+const openNewForm = async () => { resetForm(); isFormOpen.value = true; await focusFormField() }
+const openEditForm = async (account) => {
   form.account_name = account.account_name || ''
   form.description = account.description || ''
   form.balance = account.initial_balance != null ? account.initial_balance :  0
   editingId.value = account.id
   isFormOpen.value = true
+  await focusFormField()
 }
 const closeForm = () => { isFormOpen.value = false; resetForm() }
 
@@ -123,6 +134,11 @@ onMounted(() => {
       <div class="text-sm text-slate-500 self-end">Total: {{ filteredAccounts.length }} akun</div>
     </div>
 
+    <div class="bg-gradient-to-r from-blue-600 to-blue-700 rounded-3xl p-6 shadow-lg text-white">
+      <p class="text-sm text-blue-100">Total Saldo Semua Akun</p>
+      <p class="text-3xl font-bold mt-2">{{ formatCurrency(totalBalance) }}</p>
+    </div>
+
     <div v-if="isFormOpen" class="bg-white rounded-3xl p-6 shadow-lg">
       <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-200">
         <div>
@@ -131,7 +147,7 @@ onMounted(() => {
         </div>
         <button @click="closeForm" class="text-sm font-medium text-slate-600 transition hover:text-slate-900">Batal</button>
       </div>
-      <form @submit.prevent="handleSubmit" class="grid gap-5 pt-6 md:grid-cols-2">
+      <form ref="formRef" @submit.prevent="handleSubmit" class="grid gap-5 pt-6 md:grid-cols-2">
         <BaseInput v-model="form.account_name" label="Nama Akun" placeholder="Contoh: Tabungan Pribadi"
           required
           :validate="['Nama akun wajib diisi', value => String(value).trim().length > 0]" />
