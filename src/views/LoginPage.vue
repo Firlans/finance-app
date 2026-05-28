@@ -1,5 +1,5 @@
 <script setup>
-import BaseInput from '@packages/components/base/BaseInput.vue'
+import { BaseInput } from '@packages/components'
 import { refreshToken } from '@/DataService.js'
 import { parseApiError } from '@packages/utils/Error.js'
 import { Loading } from '@packages/utils/Loading.js'

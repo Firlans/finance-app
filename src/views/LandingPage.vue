@@ -1,6 +1,6 @@
 <script setup>
 import { useRouter } from 'vue-router'
-import SliderFeature from '@packages/components/base/SliderFeatures.vue'
+import { SliderFeature } from '@packages/components'
 import { onMounted, ref } from 'vue'
 import { Loading } from '@packages/utils/Loading.js'
 

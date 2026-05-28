@@ -1,9 +1,6 @@
 <script setup>
 import { reactive, ref, computed, onMounted, nextTick, h } from 'vue'
-import BaseInput from '@packages/components/base/BaseInput.vue'
-import BaseLookup from '@packages/components/base/BaseLookup.vue'
-import BaseSelect from '@packages/components/base/BaseSelect.vue'
-import BaseRoll from '@packages/components/base/BaseRoll.vue'
+import { BaseInput, BaseLookup, BaseSelect, BaseRoll } from '@packages/components'
 import { Loading } from '@packages/utils/Loading.js'
 import { Notification } from '@packages/utils/Notification.js'
 import { Dialog } from '@packages/utils/Dialog.js'

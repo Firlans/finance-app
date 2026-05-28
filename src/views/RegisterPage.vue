@@ -1,6 +1,6 @@
 <script setup>
 import { reactive, ref } from 'vue'
-import BaseInput from '@packages/components/base/BaseInput.vue'
+import { BaseInput } from '@packages/components'
 import { Loading } from '@packages/utils/Loading.js'
 import { parseApiError } from '@packages/utils/Error.js'
 import { Notification } from '@packages/utils/Notification.js'
