@@ -1,0 +1,1 @@
+import{_ as o}from"./_plugin-vue_export-helper-DlAUqK2U.js";import{c as s,a,o as t}from"./index-7fM8qh1O.js";const r={},c={class:"dashboard-page p-6"};function n(d,e){return t(),s("section",c,[...e[0]||(e[0]=[a("h1",{class:"text-2xl font-semibold mb-4"},"Dashboard",-1)])])}const l=o(r,[["render",n]]);export{l as default};
