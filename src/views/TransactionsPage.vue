@@ -1,8 +1,12 @@
 <script setup>
-import { reactive, ref, computed, onMounted, nextTick } from 'vue'
+import { reactive, ref, computed, onMounted, nextTick, h } from 'vue'
 import BaseInput from '@packages/components/base/BaseInput.vue'
 import BaseLookup from '@packages/components/base/BaseLookup.vue'
+import BaseSelect from '@packages/components/base/BaseSelect.vue'
+import BaseRoll from '@packages/components/base/BaseRoll.vue'
+import { Loading } from '@packages/utils/Loading.js'
 import { Notification } from '@packages/utils/Notification.js'
+import { Dialog } from '@packages/utils/Dialog.js'
 import { Config } from '@/Config.js'
 import {
   createTransaction,
@@ -13,12 +17,14 @@ import {
 } from '@/DataService.js'
 
 const notification = new Notification()
+const loading = new Loading()
 const transactions = ref([])
 const accounts = ref([])
 const searchQuery = ref('')
 const isFormOpen = ref(false)
 const editingId = ref(null)
 const formRef = ref(null)
+const selectedMobileTransaction = ref(null)
 const token = localStorage.getItem('access_token')
 
 const form = reactive({
@@ -36,6 +42,58 @@ const typeOptions = [
   { value: 'debit', label: 'Income' }
 ]
 
+const transactionActionsDialogContent = {
+  name: 'TransactionActionsDialogContent',
+  emits: ['dialog-ok', 'dialog-close'],
+  setup(_, { emit }) {
+    return () => {
+      const transaction = selectedMobileTransaction.value
+      const summary = transaction
+        ? `${transaction.description || '-'} • ${formatCurrency(transaction.amount)} • ${formatDate(transaction.created_at)}`
+        : '-'
+
+      return h('div', { class: 'space-y-4' }, [
+        h('div', { class: 'space-y-1' }, [
+          h('h2', { class: 'text-lg font-semibold text-slate-900' }, 'Aksi Transaksi'),
+          h('p', { class: 'text-sm leading-6 text-slate-600' }, summary),
+          h('p', { class: 'text-xs text-slate-500' }, 'Pilih tindakan untuk transaksi ini.')
+        ]),
+        h('div', { class: 'grid gap-3' }, [
+          h(
+            'button',
+            {
+              type: 'button',
+              class: 'w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50',
+              onClick: () => emit('dialog-ok', 'edit')
+            },
+            'Edit'
+          ),
+          h(
+            'button',
+            {
+              type: 'button',
+              class: 'w-full rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-red-700',
+              onClick: () => emit('dialog-ok', 'delete')
+            },
+            'Hapus'
+          ),
+          h(
+            'button',
+            {
+              type: 'button',
+              class: 'w-full rounded-xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-200',
+              onClick: () => emit('dialog-close')
+            },
+            'Batal'
+          )
+        ])
+      ])
+    }
+  }
+}
+
+const mobileActionsDialog = new Dialog(transactionActionsDialogContent, 'bottom')
+
 const filteredTransactions = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
   return transactions.value.filter((transaction) => {
@@ -47,6 +105,55 @@ const filteredTransactions = computed(() => {
       .join(' ')
       .toLowerCase()
     return !query || values.includes(query)
+  })
+})
+
+const getDateKey = (value) => {
+  if (!value) return 'unknown-date'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'unknown-date'
+
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const groupedTransactions = computed(() => {
+  const groups = new Map()
+
+  for (const transaction of filteredTransactions.value) {
+    const dateKey = getDateKey(transaction.created_at)
+    const existingGroup = groups.get(dateKey)
+    const amount = Number(transaction.amount) || 0
+    const isIncome = transaction.type === 'debit'
+
+    if (existingGroup) {
+      existingGroup.items.push(transaction)
+      if (isIncome) {
+        existingGroup.totalIncome += amount
+      } else {
+        existingGroup.totalExpense += amount
+      }
+      continue
+    }
+
+    groups.set(dateKey, {
+      dateKey,
+      dateLabel: formatDate(transaction.created_at),
+      items: [transaction],
+      totalIncome: isIncome ? amount : 0,
+      totalExpense: isIncome ? 0 : amount
+    })
+  }
+
+  return Array.from(groups.values()).map((group) => ({
+    ...group,
+    totalAmount: group.totalIncome - group.totalExpense
+  })).sort((left, right) => {
+    if (left.dateKey === 'unknown-date') return 1
+    if (right.dateKey === 'unknown-date') return -1
+    return right.dateKey.localeCompare(left.dateKey)
   })
 })
 
@@ -67,7 +174,6 @@ const loadAccounts = async () => {
 const loadTransactions = async () => {
   try {
     const transactionsData = await getTransactions(token)
-    console.log('Loaded transactions:', transactionsData)
     transactions.value = transactionsData.map((transaction) => ({
       ...transaction,
       type: transaction.transaction_type
@@ -118,7 +224,25 @@ const closeForm = () => {
   resetForm()
 }
 
+const openMobileActions = async (transaction) => {
+  selectedMobileTransaction.value = transaction
+  const result = await mobileActionsDialog.open()
+  selectedMobileTransaction.value = null
+
+  if (result.action !== 'ok') return
+
+  if (result.data === 'edit') {
+    await openEditForm(transaction)
+    return
+  }
+
+  if (result.data === 'delete' && transaction?.id) {
+    await handleDelete(transaction.id)
+  }
+}
+
 const validDescription = (value) => String(value).trim().length > 0
+const validLookupValue = (value) => String(value || '').trim().length > 0
 const numeric = (value) => {
   const number = Number(value)
   return Number.isFinite(number) && number > 0
@@ -155,8 +279,25 @@ const handleSubmit = async (event) => {
 }
 
 const handleDelete = async (transactionId) => {
-  const confirmed = window.confirm('Hapus transaksi ini?')
-  if (!confirmed) return
+  const confirmDialog = new Dialog(
+    {
+      name: 'DeleteTransactionDialogContent',
+      emits: ['dialog-ok', 'dialog-close'],
+      setup() {
+        return () =>
+          h('div', { class: 'space-y-3' }, [
+            h('h2', { class: 'text-lg font-semibold text-slate-900' }, 'Hapus transaksi?'),
+            h('p', { class: 'text-sm leading-6 text-slate-600' }, 'Transaksi yang dihapus tidak dapat dikembalikan.')
+          ])
+      }
+    },
+    'top',
+    { label: 'Hapus', value: true },
+    { label: 'Batal', value: false }
+  )
+
+  const confirmed = await confirmDialog.open()
+  if (confirmed.action !== 'ok') return
 
   try {
     await deleteTransaction(token, transactionId)
@@ -193,8 +334,15 @@ onMounted(async () => {
     notification.showError('Token pengguna tidak ditemukan. Silakan login kembali.')
     return
   }
-  await loadAccounts()
-  await loadTransactions()
+
+  loading.start({ label: 'Memuat data transaksi...' })
+
+  try {
+    await loadAccounts()
+    await loadTransactions()
+  } finally {
+    loading.stop()
+  }
 })
 </script>
 
@@ -212,157 +360,149 @@ onMounted(async () => {
       </button>
     </div>
 
-    <div class="grid gap-4 md:grid-cols-[1fr_auto]">
-      <div class="relative">
-        <input v-model="searchQuery" type="search" placeholder="Cari transaksi..."
-          class="w-full rounded-2xl border border-slate-300 bg-white py-3 px-4 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100" />
-      </div>
-      <div class="text-sm text-slate-500 self-end">Total: {{ filteredTransactions.length }} transaksi</div>
-    </div>
-
-    <div v-if="isFormOpen" class="bg-white rounded-3xl p-6 shadow-lg">
-      <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-200">
-        <div>
-          <h2 class="text-lg font-semibold text-slate-900">{{ formTitle }}</h2>
-          <p class="text-slate-500 text-sm">Isi data transaksi lalu simpan.</p>
+      <div class="grid gap-4 md:grid-cols-[1fr_auto]">
+        <div class="relative">
+          <input v-model="searchQuery" type="search" placeholder="Cari transaksi..."
+            class="w-full rounded-2xl border border-slate-300 bg-white py-3 px-4 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100" />
         </div>
-        <button @click="closeForm"
-          class="text-sm font-medium text-slate-600 transition hover:text-slate-900">Batal</button>
+        <div class="text-sm text-slate-500 self-end">Total: {{ filteredTransactions.length }} transaksi</div>
       </div>
 
-      <form ref="formRef" @submit.prevent="handleSubmit" class="grid gap-5 pt-6 md:grid-cols-2">
-        <BaseInput v-model="form.description" label="Deskripsi" placeholder="Contoh: Beli makan siang"
-          required
-          :validate="['Deskripsi wajib diisi', validDescription]" />
-
-        <BaseLookup
-          v-model="form.account_id"
-          label="Akun"
-          placeholder="Pilih akun"
-          required
-          :route="`${Config.url}/accounts`"
-          item-key="id"
-          display="account_name"
-          :auth="true"
-        />
-
-        <BaseLookup
-          v-model="form.category_id"
-          label="Kategori"
-          placeholder="Pilih kategori"
-          required
-          :route="categoriesLookupRoute"
-          item-key="id"
-          display="name"
-          :auth="true"
-        />
-
-        <BaseInput v-model="form.amount" label="Jumlah" type="number" placeholder="0" required
-          :validate="['Jumlah harus lebih besar dari 0', numeric]" />
-
-        <div class="space-y-1">
-          <label class="block text-sm font-medium text-slate-700">Tipe</label>
-          <select v-model="form.type"
-            class="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
-            <option v-for="option in typeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-          </select>
+      <div v-if="isFormOpen" class="bg-white rounded-3xl p-6 shadow-lg">
+        <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-200">
+          <div>
+            <h2 class="text-lg font-semibold text-slate-900">{{ formTitle }}</h2>
+            <p class="text-slate-500 text-sm">Isi data transaksi lalu simpan.</p>
+          </div>
+          <button @click="closeForm"
+            class="text-sm font-medium text-slate-600 transition hover:text-slate-900">Batal</button>
         </div>
 
-        <div class="md:col-span-2 flex flex-col gap-3 sm:flex-row sm:justify-end">
-          <button type="button" @click="closeForm"
-            class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:w-auto">
-            Batal
-          </button>
-          <button type="submit"
-            class="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 sm:w-auto">
-            {{ submitLabel }}
-          </button>
-        </div>
-      </form>
-    </div>
+        <form ref="formRef" @submit.prevent="handleSubmit" class="grid gap-5 pt-6 md:grid-cols-2">
+          <BaseInput v-model="form.description" label="Deskripsi" placeholder="Contoh: Beli makan siang" required
+            :validate="['Deskripsi wajib diisi', validDescription]" />
 
-    <div class="bg-white rounded-3xl p-6 shadow-lg">
-      <div v-if="filteredTransactions.length === 0" class="space-y-3 text-center text-slate-600">
-        <p class="text-lg font-medium">Belum ada transaksi</p>
-        <p class="text-sm">Klik tombol Tambah Transaksi untuk membuat daftar transaksi baru.</p>
+          <BaseLookup v-model="form.account_id" label="Akun" placeholder="Pilih akun" required
+            :validate="['Akun wajib dipilih', validLookupValue]" :route="`${Config.url}/accounts`" item-key="id"
+            display="account_name" :auth="true" />
+
+          <BaseLookup v-model="form.category_id" label="Kategori" placeholder="Pilih kategori" required
+            :validate="['Kategori wajib dipilih', validLookupValue]" :route="categoriesLookupRoute" item-key="id"
+            display="name" :auth="true" />
+
+          <BaseInput v-model="form.amount" label="Jumlah" type="money" placeholder="0" required
+            :validate="['Jumlah harus lebih besar dari 0', numeric]" />
+
+          <BaseSelect v-model="form.type" label="Tipe" :options="typeOptions" required
+            :validate="['Tipe wajib dipilih', value => String(value || '').trim().length > 0]" />
+
+          <div class="md:col-span-2 flex flex-col gap-3 sm:flex-row sm:justify-end">
+            <button type="button" @click="closeForm"
+              class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:w-auto">
+              Batal
+            </button>
+            <button type="submit"
+              class="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 sm:w-auto">
+              {{ submitLabel }}
+            </button>
+          </div>
+        </form>
       </div>
 
-      <div v-else>
-        <!-- Mobile card layout -->
-        <div class="md:hidden space-y-3">
-          <div v-for="transaction in filteredTransactions" :key="transaction.id"
-            class="rounded-2xl bg-slate-50 p-4 shadow-sm space-y-2">
-            <div class="flex items-start justify-between gap-2">
-              <div class="min-w-0">
-                <p class="font-semibold text-slate-900 text-sm truncate">{{ transaction.description }}</p>
-                <p class="text-xs text-slate-500 mt-0.5">{{ getAccountName(transaction.account_id) }}</p>
-              </div>
-              <div class="text-right shrink-0">
-                <p class="font-semibold text-sm text-slate-900">{{ formatCurrency(transaction.amount) }}</p>
-                <span :class="transaction.type === 'debit'
-                  ? 'rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700'
-                  : 'rounded-full bg-rose-100 px-2 py-0.5 text-xs text-rose-700'">
-                  {{ transaction.type === 'debit' ? 'Income' : 'Expense' }}
+      <div class="bg-white rounded-3xl p-6 shadow-lg">
+        <div v-if="filteredTransactions.length === 0" class="space-y-3 text-center text-slate-600">
+          <p class="text-lg font-medium">Belum ada transaksi</p>
+          <p class="text-sm">Klik tombol Tambah Transaksi untuk membuat daftar transaksi baru.</p>
+        </div>
+
+        <div v-else class="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
+          <BaseRoll v-for="group in groupedTransactions" :key="group.dateKey" type="vertical"
+            :label="`${group.dateLabel}`" gap-class="gap-3 px-4 pb-4">
+            <template #description>
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-600">
+                  Total: {{ group.items.length }} transaksi
+                </span>
+                <span class="rounded-full bg-emerald-100 px-2 py-1 text-[11px] font-medium text-emerald-700">
+                  +{{ formatCurrency(group.totalIncome) }}
+                </span>
+                <span class="rounded-full bg-rose-100 px-2 py-1 text-[11px] font-medium text-rose-700">
+                  -{{ formatCurrency(group.totalExpense) }}
+                </span>
+                <span class="rounded-full px-2 py-1 text-[11px] font-semibold"
+                  :class="group.totalAmount >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'">
+                  Netto: {{ group.totalAmount >= 0 ? '+' : '' }}{{ formatCurrency(group.totalAmount) }}
                 </span>
               </div>
-            </div>
-            <div class="text-xs text-slate-400">{{ formatDate(transaction.created_at) }}</div>
-            <div class="flex gap-2 pt-1">
-              <button @click="openEditForm(transaction)"
-                class="flex-1 rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-200">
-                Edit
-              </button>
-              <button @click="handleDelete(transaction.id)"
-                class="flex-1 rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-red-700">
-                Hapus
-              </button>
-            </div>
-          </div>
-        </div>
+            </template>
 
-        <!-- Desktop table layout -->
-        <div class="hidden md:block overflow-x-auto">
-          <table class="min-w-full border-separate border-spacing-y-3 text-left">
-            <thead>
-              <tr class="text-sm text-slate-500">
-                <th class="px-4 py-3">Deskripsi</th>
-                <th class="px-4 py-3">Akun</th>
-                <th class="px-4 py-3">Tipe</th>
-                <th class="px-4 py-3">Tanggal</th>
-                <th class="px-4 py-3 text-right">Jumlah</th>
-                <th class="px-4 py-3">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="transaction in filteredTransactions" :key="transaction.id"
-                class="rounded-3xl bg-slate-50 align-top text-sm shadow-sm transition hover:bg-slate-100">
-                <td class="px-4 py-4 text-slate-900">{{ transaction.description }}</td>
-                <td class="px-4 py-4 text-slate-600">{{ getAccountName(transaction.account_id) }}</td>
-                <td class="px-4 py-4">
-                  <span :class="transaction.type === 'debit'
-                    ? 'rounded-full bg-emerald-100 px-3 py-1 text-xs text-emerald-700'
-                    : 'rounded-full bg-rose-100 px-3 py-1 text-xs text-rose-700'">
-                    {{ transaction.type === 'debit' ? 'Income' : 'Expense' }}
-                  </span>
-                </td>
-                <td class="px-4 py-4 text-slate-600">{{ formatDate(transaction.created_at) }}</td>
-                <td class="px-4 py-4 text-right font-semibold text-slate-900">{{ formatCurrency(transaction.amount) }}
-                </td>
-                <td class="px-4 py-4 space-x-2">
-                  <button @click="openEditForm(transaction)"
-                    class="rounded-lg bg-slate-100 px-3 py-1 text-sm text-slate-700 transition hover:bg-slate-200">
-                    Edit
-                  </button>
-                  <button @click="handleDelete(transaction.id)"
-                    class="rounded-lg bg-red-600 px-3 py-1 text-sm font-semibold text-white transition hover:bg-red-700">
-                    Hapus
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+            <!-- Mobile card layout grouped by date -->
+            <div class="md:hidden space-y-3">
+              <div v-for="transaction in group.items" :key="transaction.id"
+                class="rounded-2xl bg-slate-50 p-4 shadow-sm space-y-2 cursor-pointer transition hover:bg-slate-100 active:scale-[0.99]"
+                role="button" tabindex="0" @click="openMobileActions(transaction)"
+                @keydown.enter.prevent="openMobileActions(transaction)"
+                @keydown.space.prevent="openMobileActions(transaction)">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="min-w-0">
+                    <p class="font-semibold text-slate-900 text-sm truncate">{{ transaction.description }}</p>
+                    <p class="text-xs text-slate-500 mt-0.5">{{ getAccountName(transaction.account_id) }}</p>
+                  </div>
+                  <div class="text-right shrink-0">
+                    <p class="font-semibold text-sm text-slate-900">{{ formatCurrency(transaction.amount) }}</p>
+                    <span :class="transaction.type === 'debit'
+                      ? 'rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700'
+                      : 'rounded-full bg-rose-100 px-2 py-0.5 text-xs text-rose-700'">
+                      {{ transaction.type === 'debit' ? 'Income' : 'Expense' }}
+                    </span>
+                  </div>
+                </div>
+                <div class="text-xs text-slate-400">{{ formatDate(transaction.created_at) }}</div>
+              </div>
+            </div>
+
+            <!-- Desktop table layout grouped by date -->
+            <div class="hidden md:block overflow-x-auto">
+              <table class="min-w-full border-separate border-spacing-y-3 text-left">
+                <thead>
+                  <tr class="text-sm text-slate-500">
+                    <th class="px-4 py-3">Deskripsi</th>
+                    <th class="px-4 py-3">Akun</th>
+                    <th class="px-4 py-3">Tipe</th>
+                    <th class="px-4 py-3 text-right">Jumlah</th>
+                    <th class="px-4 py-3">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="transaction in group.items" :key="transaction.id"
+                    class="rounded-3xl bg-slate-50 align-top text-sm shadow-sm transition hover:bg-slate-100">
+                    <td class="px-4 py-4 text-slate-900">{{ transaction.description }}</td>
+                    <td class="px-4 py-4 text-slate-600">{{ getAccountName(transaction.account_id) }}</td>
+                    <td class="px-4 py-4">
+                      <span :class="transaction.type === 'debit'
+                        ? 'rounded-full bg-emerald-100 px-3 py-1 text-xs text-emerald-700'
+                        : 'rounded-full bg-rose-100 px-3 py-1 text-xs text-rose-700'">
+                        {{ transaction.type === 'debit' ? 'Income' : 'Expense' }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-4 text-right font-semibold text-slate-900">{{ formatCurrency(transaction.amount)
+                    }}</td>
+                    <td class="px-4 py-4 space-x-2">
+                      <button @click="openEditForm(transaction)"
+                        class="rounded-lg bg-slate-100 px-3 py-1 text-sm text-slate-700 transition hover:bg-slate-200">
+                        Edit
+                      </button>
+                      <button @click="handleDelete(transaction.id)"
+                        class="rounded-lg bg-red-600 px-3 py-1 text-sm font-semibold text-white transition hover:bg-red-700">
+                        Hapus
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </BaseRoll>
         </div>
       </div>
-    </div>
   </section>
 </template>

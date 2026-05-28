@@ -1,15 +1,34 @@
 <script setup>
-import { reactive, ref, computed, onMounted, nextTick } from 'vue'
+import { reactive, ref, computed, onMounted, nextTick, h } from 'vue'
 import BaseInput from '@packages/components/base/BaseInput.vue'
+import { Loading } from '@packages/utils/Loading.js'
 import { Notification } from '@packages/utils/Notification.js'
+import { Dialog } from '@packages/utils/Dialog.js'
 import { createAccount, deleteAccount, getAccounts, updateAccount } from '@/DataService.js'
 
+const loading = new Loading()
 const notification = new Notification()
+const dialog = new Dialog(
+  {
+    name: 'DeleteAccountDialogContent',
+    setup() {
+      return () =>
+        h('div', { class: 'space-y-3' }, [
+          h('h2', { class: 'text-lg font-semibold text-slate-900' }, 'Hapus akun?'),
+          h('p', { class: 'text-sm leading-6 text-slate-600' }, 'Akun yang dihapus tidak dapat dikembalikan.')
+        ])
+    }
+  },
+  'top',
+  { label: 'Hapus', value: true },
+  { label: 'Batal', value: false }
+)
 const token = localStorage.getItem('access_token')
 
 const accounts = ref([])
 const searchQuery = ref('')
 const isFormOpen = ref(false)
+const selectedAccount = ref(null)
 const editingId = ref(null)
 const formRef = ref(null)
 
@@ -68,6 +87,28 @@ const openEditForm = async (account) => {
 }
 const closeForm = () => { isFormOpen.value = false; resetForm() }
 
+const openMobileActions = (account) => {
+  selectedAccount.value = account
+}
+
+const closeMobileActions = () => {
+  selectedAccount.value = null
+}
+
+const editFromMobileActions = async () => {
+  if (!selectedAccount.value) return
+  const account = selectedAccount.value
+  closeMobileActions()
+  await openEditForm(account)
+}
+
+const deleteFromMobileActions = async () => {
+  if (!selectedAccount.value) return
+  const accountId = selectedAccount.value.id
+  closeMobileActions()
+  await handleDelete(accountId)
+}
+
 const numeric = (value) => {
   const number = Number(value)
   return Number.isFinite(number) && number >= 0
@@ -100,7 +141,8 @@ const handleSubmit = async (event) => {
 }
 
 const handleDelete = async (id) => {
-  if (!window.confirm('Hapus akun ini?')) return
+  const result = await dialog.open()
+  if (result.action !== 'ok') return
   try {
     await deleteAccount(token, id)
     accounts.value = accounts.value.filter((a) => a.id !== id)
@@ -110,8 +152,18 @@ const handleDelete = async (id) => {
   }
 }
 
-onMounted(() => {
-  if (token) loadAccounts()
+onMounted(async () => {
+  if (!token) {
+    return
+  }
+
+  loading.start({ label: 'Memuat daftar akun...' })
+
+  try {
+    await loadAccounts()
+  } finally {
+    loading.stop()
+  }
 })
 </script>
 
@@ -128,104 +180,131 @@ onMounted(() => {
       </button>
     </div>
 
-    <div class="grid gap-4 md:grid-cols-[1fr_auto]">
-      <input v-model="searchQuery" type="search" placeholder="Cari akun..."
-        class="w-full rounded-2xl border border-slate-300 bg-white py-3 px-4 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100" />
-      <div class="text-sm text-slate-500 self-end">Total: {{ filteredAccounts.length }} akun</div>
-    </div>
-
-    <div class="bg-gradient-to-r from-blue-600 to-blue-700 rounded-3xl p-6 shadow-lg text-white">
-      <p class="text-sm text-blue-100">Total Saldo Semua Akun</p>
-      <p class="text-3xl font-bold mt-2">{{ formatCurrency(totalBalance) }}</p>
-    </div>
-
-    <div v-if="isFormOpen" class="bg-white rounded-3xl p-6 shadow-lg">
-      <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-200">
-        <div>
-          <h3 class="text-lg font-semibold text-slate-900">{{ formTitle }}</h3>
-          <p class="text-slate-500 text-sm">Isi data akun lalu simpan.</p>
-        </div>
-        <button @click="closeForm" class="text-sm font-medium text-slate-600 transition hover:text-slate-900">Batal</button>
+      <div class="grid gap-4 md:grid-cols-[1fr_auto]">
+        <input v-model="searchQuery" type="search" placeholder="Cari akun..."
+          class="w-full rounded-2xl border border-slate-300 bg-white py-3 px-4 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100" />
+        <div class="text-sm text-slate-500 self-end">Total: {{ filteredAccounts.length }} akun</div>
       </div>
-      <form ref="formRef" @submit.prevent="handleSubmit" class="grid gap-5 pt-6 md:grid-cols-2">
-        <BaseInput v-model="form.account_name" label="Nama Akun" placeholder="Contoh: Tabungan Pribadi"
-          required
-          :validate="['Nama akun wajib diisi', value => String(value).trim().length > 0]" />
-        <BaseInput v-model="form.balance" label="Saldo" type="number" placeholder="0"
-          required
-          :validate="['Saldo harus berupa angka positif', numeric]" />
-        <div class="md:col-span-2">
-          <BaseInput v-model="form.description" label="Deskripsi" placeholder="Contoh: Tabungan bulanan" />
-        </div>
-        <div class="md:col-span-2 flex flex-col gap-3 sm:flex-row sm:justify-end">
-          <button type="button" @click="closeForm"
-            class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:w-auto">
-            Batal
-          </button>
-          <button type="submit"
-            class="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 sm:w-auto">
-            {{ submitLabel }}
-          </button>
-        </div>
-      </form>
-    </div>
 
-    <div class="bg-white rounded-3xl p-6 shadow-lg">
-      <div v-if="filteredAccounts.length === 0" class="space-y-3 text-center text-slate-600">
-        <p class="text-lg font-medium">Belum ada akun</p>
-        <p class="text-sm">Klik tombol Tambah Akun untuk menambahkan akun baru.</p>
+      <div class="bg-gradient-to-r from-blue-600 to-blue-700 rounded-3xl p-6 shadow-lg text-white">
+        <p class="text-sm text-blue-100">Total Saldo Semua Akun</p>
+        <p class="text-3xl font-bold mt-2">{{ formatCurrency(totalBalance) }}</p>
       </div>
-      <div v-else>
-        <!-- Mobile -->
-        <div class="md:hidden space-y-3">
-          <div v-for="account in filteredAccounts" :key="account.id"
-            class="rounded-2xl bg-slate-50 p-4 shadow-sm space-y-2">
-            <div class="flex items-start justify-between gap-2">
-              <div>
-                <p class="font-semibold text-slate-900 text-sm">{{ account.account_name }}</p>
-                <p class="text-xs text-slate-500 mt-0.5">{{ account.description || '-' }}</p>
+
+      <div v-if="isFormOpen" class="bg-white rounded-3xl p-6 shadow-lg">
+        <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-200">
+          <div>
+            <h3 class="text-lg font-semibold text-slate-900">{{ formTitle }}</h3>
+            <p class="text-slate-500 text-sm">Isi data akun lalu simpan.</p>
+          </div>
+          <button @click="closeForm" class="text-sm font-medium text-slate-600 transition hover:text-slate-900">Batal</button>
+        </div>
+        <form ref="formRef" @submit.prevent="handleSubmit" class="grid gap-5 pt-6 md:grid-cols-2">
+          <BaseInput v-model="form.account_name" label="Nama Akun" placeholder="Contoh: Tabungan Pribadi"
+            required
+            :validate="['Nama akun wajib diisi', value => String(value).trim().length > 0]" />
+          <BaseInput v-model="form.balance" label="Saldo" type="number" placeholder="0"
+            required
+            :validate="['Saldo harus berupa angka positif', numeric]" />
+          <div class="md:col-span-2">
+            <BaseInput v-model="form.description" label="Deskripsi" placeholder="Contoh: Tabungan bulanan" />
+          </div>
+          <div class="md:col-span-2 flex flex-col gap-3 sm:flex-row sm:justify-end">
+            <button type="button" @click="closeForm"
+              class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:w-auto">
+              Batal
+            </button>
+            <button type="submit"
+              class="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 sm:w-auto">
+              {{ submitLabel }}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="bg-white rounded-3xl p-6 shadow-lg">
+        <div v-if="filteredAccounts.length === 0" class="space-y-3 text-center text-slate-600">
+          <p class="text-lg font-medium">Belum ada akun</p>
+          <p class="text-sm">Klik tombol Tambah Akun untuk menambahkan akun baru.</p>
+        </div>
+        <div v-else>
+          <!-- Mobile -->
+          <div class="md:hidden space-y-3">
+            <div v-for="account in filteredAccounts" :key="account.id"
+              class="rounded-2xl bg-slate-50 p-4 shadow-sm space-y-2 cursor-pointer transition hover:bg-slate-100 active:scale-[0.99]"
+              role="button" tabindex="0" @click="openMobileActions(account)"
+              @keydown.enter.prevent="openMobileActions(account)"
+              @keydown.space.prevent="openMobileActions(account)">
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <p class="font-semibold text-slate-900 text-sm">{{ account.account_name }}</p>
+                  <p class="text-xs text-slate-500 mt-0.5">{{ account.description || '-' }}</p>
+                </div>
+                <span class="text-sm font-semibold text-slate-900 shrink-0">{{ formatCurrency(account.balance) }}</span>
               </div>
-              <span class="text-sm font-semibold text-slate-900 shrink-0">{{ formatCurrency(account.balance) }}</span>
-            </div>
-            <div class="text-xs text-slate-400">Dibuat: {{ formatDate(account.created_at) }}</div>
-            <div class="flex gap-2 pt-1">
-              <button @click="openEditForm(account)"
-                class="flex-1 rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-200">Edit</button>
-              <button @click="handleDelete(account.id)"
-                class="flex-1 rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-red-700">Hapus</button>
+              <div class="text-xs text-slate-400">Dibuat: {{ formatDate(account.created_at) }}</div>
             </div>
           </div>
-        </div>
-        <!-- Desktop -->
-        <div class="hidden md:block overflow-x-auto">
-          <table class="min-w-full border-separate border-spacing-y-3 text-left">
-            <thead>
-              <tr class="text-sm text-slate-500">
-                <th class="px-4 py-3">Nama Akun</th>
-                <th class="px-4 py-3">Saldo</th>
-                <th class="px-4 py-3">Deskripsi</th>
-                <th class="px-4 py-3">Dibuat</th>
-                <th class="px-4 py-3">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="account in filteredAccounts" :key="account.id"
-                class="rounded-3xl bg-slate-50 align-top text-sm shadow-sm transition hover:bg-slate-100">
-                <td class="px-4 py-4 text-slate-900">{{ account.account_name }}</td>
-                <td class="px-4 py-4 text-slate-900">{{ formatCurrency(account.balance) }}</td>
-                <td class="px-4 py-4 text-slate-600">{{ account.description || '-' }}</td>
-                <td class="px-4 py-4 text-slate-600">{{ formatDate(account.created_at) }}</td>
-                <td class="px-4 py-4 space-x-2">
-                  <button @click="openEditForm(account)"
-                    class="rounded-lg bg-slate-100 px-3 py-1 text-sm text-slate-700 transition hover:bg-slate-200">Edit</button>
-                  <button @click="handleDelete(account.id)"
-                    class="rounded-lg bg-red-600 px-3 py-1 text-sm font-semibold text-white transition hover:bg-red-700">Hapus</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <!-- Desktop -->
+          <div class="hidden md:block overflow-x-auto">
+            <table class="min-w-full border-separate border-spacing-y-3 text-left">
+              <thead>
+                <tr class="text-sm text-slate-500">
+                  <th class="px-4 py-3">Nama Akun</th>
+                  <th class="px-4 py-3">Saldo</th>
+                  <th class="px-4 py-3">Deskripsi</th>
+                  <th class="px-4 py-3">Dibuat</th>
+                  <th class="px-4 py-3">Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="account in filteredAccounts" :key="account.id"
+                  class="rounded-3xl bg-slate-50 align-top text-sm shadow-sm transition hover:bg-slate-100">
+                  <td class="px-4 py-4 text-slate-900">{{ account.account_name }}</td>
+                  <td class="px-4 py-4 text-slate-900">{{ formatCurrency(account.balance) }}</td>
+                  <td class="px-4 py-4 text-slate-600">{{ account.description || '-' }}</td>
+                  <td class="px-4 py-4 text-slate-600">{{ formatDate(account.created_at) }}</td>
+                  <td class="px-4 py-4 space-x-2">
+                    <button @click="openEditForm(account)"
+                      class="rounded-lg bg-slate-100 px-3 py-1 text-sm text-slate-700 transition hover:bg-slate-200">Edit</button>
+                    <button @click="handleDelete(account.id)"
+                      class="rounded-lg bg-red-600 px-3 py-1 text-sm font-semibold text-white transition hover:bg-red-700">Hapus</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-    </div>
+
+      <div v-if="selectedAccount"
+        class="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 p-4 md:hidden"
+        @click.self="closeMobileActions">
+        <div class="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
+          <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Aksi Akun</p>
+          <p class="mt-2 truncate text-base font-semibold text-slate-900">
+            {{ selectedAccount?.account_name || '-' }}
+          </p>
+          <p class="mt-1 text-sm text-slate-500">
+            {{ formatCurrency(selectedAccount?.balance) }} • {{ formatDate(selectedAccount?.created_at) }}
+          </p>
+
+          <div class="mt-4 grid grid-cols-2 gap-3">
+            <button @click="editFromMobileActions"
+              class="rounded-xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-200">
+              Edit
+            </button>
+            <button @click="deleteFromMobileActions"
+              class="rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-red-700">
+              Hapus
+            </button>
+          </div>
+          <button @click="closeMobileActions"
+            class="mt-3 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50">
+            Batal
+          </button>
+        </div>
+      </div>
+
   </div>
 </template>

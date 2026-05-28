@@ -48,3 +48,52 @@ npm run test:unit
 ```sh
 npm run lint
 ```
+
+## Component Documentation
+
+Finance app currently exposes two local base components under `src/components/base`.
+
+### BaseRoll
+
+Accordion-like panel wrapper that can render content vertically or horizontally.
+
+#### Props
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `type` | `String` | `'vertical'` | Accepted values: `horizontal`, `vertical` |
+| `label` | `String` | `'Panel'` | Header title |
+| `description` | `String` | `''` | Secondary text shown below the label |
+| `initiallyOpen` | `Boolean` | `true` | Initial open state |
+| `gapClass` | `String` | `'gap-3'` | Gap utility class for slot content |
+
+#### Slots
+
+| Slot | Description |
+|---|---|
+| default | Main panel content |
+| `description` | Replaces the plain description text |
+
+#### Behavior
+
+- `horizontal` mode collapses width and rotates the chevron sideways.
+- `vertical` mode collapses height and adds top padding when opened.
+
+### RollBase
+
+Compatibility wrapper around `BaseRoll` with the same public API. Use this component when older templates still reference `RollBase`.
+
+#### Props
+
+`RollBase` forwards the following props directly to `BaseRoll`:
+
+- `type`
+- `label`
+- `description`
+- `initiallyOpen`
+- `gapClass`
+
+#### Slots
+
+- default
+- `description`

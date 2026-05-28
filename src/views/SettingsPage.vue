@@ -8,6 +8,11 @@ const tabs = [
   { id: 'accounts', label: 'Akun' },
   { id: 'categories', label: 'Kategori' }
 ]
+
+const requestTabChange = (nextTab) => {
+  if (nextTab === activeTab.value) return
+  activeTab.value = nextTab
+}
 </script>
 
 <template>
@@ -22,7 +27,7 @@ const tabs = [
       <button
         v-for="tab in tabs"
         :key="tab.id"
-        @click="activeTab = tab.id"
+        @click="requestTabChange(tab.id)"
         class="rounded-xl px-5 py-2 text-sm font-semibold transition"
         :class="activeTab === tab.id ? 'bg-white text-slate-900 shadow' : 'text-slate-500 hover:text-slate-700'"
       >

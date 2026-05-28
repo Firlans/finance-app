@@ -44,3 +44,4 @@ __screenshots__/
 .github/*
 .vscode/*
 .idea/*
+documentation/routes.swagger.json
