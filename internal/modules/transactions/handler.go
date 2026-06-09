@@ -4,16 +4,19 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 )
 
 type Handler struct {
-	useCase UseCase
+	useCase  UseCase
+	validate *validator.Validate
 }
 
-func NewHandler(useCase UseCase) *Handler {
+func NewHandler(useCase UseCase, validate *validator.Validate) *Handler {
 	return &Handler{
-		useCase: useCase,
+		useCase:  useCase,
+		validate: validate,
 	}
 }
 
@@ -90,6 +93,21 @@ func (h *Handler) createTransaction(c *fiber.Ctx) error {
 		})
 	}
 
+	if err := h.validate.Struct(&req); err != nil {
+		if validationErrors, ok := err.(validator.ValidationErrors); ok {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error":      "Validation failed",
+				"details":    validationErrors.Error(),
+				"request_id": c.Locals("request_id"),
+			})
+		}
+
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":      err.Error(),
+			"request_id": c.Locals("request_id"),
+		})
+	}
+
 	userID, ok := c.Locals("user_id").(string)
 	if !ok || userID == "" {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
@@ -98,14 +116,14 @@ func (h *Handler) createTransaction(c *fiber.Ctx) error {
 		})
 	}
 
-	req.UserID = userID
 	now := time.Now().UTC()
+	categoryID := req.CategoryID
 	transaction := &Transaction{
 		Amount:          req.Amount,
 		TransactionType: req.TransactionType,
 		Description:     req.Description,
 		AccountID:       req.AccountID,
-		CategoryID:      req.CategoryID,
+		CategoryID:      &categoryID,
 		UserID:          userID,
 		CreatedAt:       now,
 		UpdatedAt:       now,
@@ -148,13 +166,26 @@ func (h *Handler) updateTransaction(c *fiber.Ctx) error {
 		})
 	}
 
-	req.ID = id
+	if err := h.validate.Struct(&req); err != nil {
+		if validationErrors, ok := err.(validator.ValidationErrors); ok {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error":      "Validation failed",
+				"message":    validationErrors.Error(),
+				"request_id": c.Locals("request_id"),
+			})
+		}
+
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":      err.Error(),
+			"request_id": c.Locals("request_id"),
+		})
+	}
 	transaction := &Transaction{
-		ID:              req.ID,
+		ID:              id,
 		Amount:          *req.Amount,
 		TransactionType: *req.TransactionType,
 		Description:     *req.Description,
-		CategoryID:      *req.CategoryID,
+		CategoryID:      req.CategoryID,
 		AccountID:       *req.AccountID,
 	}
 
