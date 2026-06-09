@@ -79,6 +79,7 @@ func (uc *useCase) UpdateTransaction(ctx context.Context, transaction *Transacti
 	existing.TransactionType = req.TransactionType
 	existing.Description = req.Description
 	existing.AccountID = req.AccountID
+	existing.CategoryID = req.CategoryID
 	existing.UpdatedAt = time.Now().UTC()
 
 	return uc.repo.UpdateTransaction(ctx, existing)

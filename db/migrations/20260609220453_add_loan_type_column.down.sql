@@ -1,0 +1,1 @@
+ALTER TABLE LOANS DROP COLUMN loan_type;

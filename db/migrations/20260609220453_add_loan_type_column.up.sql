@@ -1,0 +1,1 @@
+ALTER TABLE LOANS ADD COLUMN loan_type VARCHAR(50) NOT NULL CHECK (loan_type IN ('debt', 'receivable'));

@@ -13,6 +13,7 @@ type CreateAccountRequest struct {
 	AccountName string  `json:"account_name" validate:"required,min=3,max=100"`
 	Description string  `json:"description,omitempty" validate:"max=255"`
 	Balance     float64 `json:"balance" validate:"gte=0"`
+	AccountId   int     `json:"account_id,omitempty"`
 }
 
 type CreateAccountResponse struct {
@@ -23,6 +24,7 @@ type UpdateAccountRequest struct {
 	AccountName *string  `json:"account_name,omitempty" validate:"omitempty,min=3,max=100"`
 	Description *string  `json:"description,omitempty" validate:"omitempty,max=255"`
 	Balance     *float64 `json:"balance,omitempty" validate:"omitempty,gte=0"`
+	AccountId   *int     `json:"account_id,omitempty"`
 }
 
 type Account struct {
@@ -31,6 +33,7 @@ type Account struct {
 	AccountName    string    `json:"account_name"`
 	Description    string    `json:"description,omitempty"`
 	Balance        float64   `json:"balance"`
+	AccountId      int       `json:"account_id,omitempty"`
 	InitialBalance float64   `json:"initial_balance" validate:"omitempty,gte=0"`
 	CreatedAt      time.Time `json:"created_at"`
 }

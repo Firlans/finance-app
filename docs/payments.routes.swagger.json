@@ -1,0 +1,628 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Finance App Service - Payments API",
+    "version": "1.0.0",
+    "description": "OpenAPI documentation for the payments module of the finance tracker service. Includes payment management endpoints for authenticated users."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "Local development server"
+    }
+  ],
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "Invalid request body"
+          },
+          "details": {
+            "type": "string",
+            "example": "Key: 'CreatePaymentRequest.Transaction.Amount' Error:Field validation for 'Amount' failed on the 'required' tag"
+          },
+          "request_id": {
+            "type": "string",
+            "example": "req-123e4567-e89b-12d3-a456-426614174000"
+          }
+        }
+      },
+      "GenericMessageResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Delete payment"
+          },
+          "request_id": {
+            "type": "string",
+            "example": "req-123e4567-e89b-12d3-a456-426614174000"
+          }
+        }
+      },
+      "TransactionInput": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "format": "double",
+            "example": 150.00
+          },
+          "transaction_type": {
+            "type": "string",
+            "example": "debit",
+            "description": "Allowed values: debit, credit"
+          },
+          "description": {
+            "type": "string",
+            "example": "Loan payment",
+            "description": "Optional transaction description"
+          },
+          "account_id": {
+            "type": "integer",
+            "format": "int32",
+            "example": 2
+          },
+          "category_id": {
+            "type": "integer",
+            "format": "int32",
+            "example": 3,
+            "description": "Optional category for the transaction"
+          }
+        }
+      },
+      "CreatePaymentRequest": {
+        "type": "object",
+        "required": ["loan_id"],
+        "properties": {
+          "transaction_id": {
+            "type": "integer",
+            "format": "int32",
+            "example": 10,
+            "description": "Existing transaction ID to associate with this payment"
+          },
+          "transaction": {
+            "$ref": "#/components/schemas/TransactionInput"
+          },
+          "loan_id": {
+            "type": "integer",
+            "format": "int32",
+            "example": 5
+          }
+        }
+      },
+      "UpdatePaymentRequest": {
+        "type": "object",
+        "properties": {
+          "loan_id": {
+            "type": "integer",
+            "format": "int32",
+            "example": 5
+          },
+          "transaction": {
+            "$ref": "#/components/schemas/TransactionInput"
+          }
+        }
+      },
+      "CreatePaymentResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32",
+            "example": 1
+          }
+        }
+      },
+      "Payment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32",
+            "example": 1
+          },
+          "transaction_id": {
+            "type": "integer",
+            "format": "int32",
+            "example": 10
+          },
+          "loan_id": {
+            "type": "integer",
+            "format": "int32",
+            "example": 5
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-06-10T12:00:00Z"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-06-10T12:00:00Z"
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/payments": {
+      "get": {
+        "tags": ["Payments"],
+        "summary": "List payments by loan",
+        "description": "Retrieve all payments associated with a specific loan.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "loan_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "Loan identifier to filter payments"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payments retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Get payments"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Payment"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "message": "Get payments",
+                  "data": [
+                    {
+                      "id": 1,
+                      "transaction_id": 10,
+                      "loan_id": 5,
+                      "created_at": "2026-06-10T12:00:00Z",
+                      "updated_at": "2026-06-10T12:00:00Z"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing loan_id parameter.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "loan_id query parameter is required",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Call without loan_id query parameter returns 400.",
+          "Call without authentication returns 401.",
+          "Use invalid loan_id value returns 400."
+        ]
+      },
+      "post": {
+        "tags": ["Payments"],
+        "summary": "Create payment",
+        "description": "Create a new payment record for a loan.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePaymentRequest"
+              },
+              "example": {
+                "loan_id": 5,
+                "transaction": {
+                  "amount": 150.00,
+                  "transaction_type": "debit",
+                  "description": "Loan payment",
+                  "account_id": 2,
+                  "category_id": 3
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Payment created successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Create payment"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CreatePaymentResponse"
+                    }
+                  }
+                },
+                "example": {
+                  "message": "Create payment",
+                  "data": {
+                    "id": 1
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed or invalid body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Create payment without loan_id returns 400.",
+          "Create payment with unsupported transaction_type returns 400.",
+          "Call without authentication returns 401."
+        ]
+      }
+    },
+    "/api/payments/{id}": {
+      "get": {
+        "tags": ["Payments"],
+        "summary": "Get payment by ID",
+        "description": "Retrieve payment details by payment ID.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "Payment identifier"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payment retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Get payment by ID"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Payment"
+                    }
+                  }
+                },
+                "example": {
+                  "message": "Get payment by ID",
+                  "data": {
+                    "id": 1,
+                    "transaction_id": 10,
+                    "loan_id": 5,
+                    "created_at": "2026-06-10T12:00:00Z",
+                    "updated_at": "2026-06-10T12:00:00Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payment ID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Invalid payment ID",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Payment not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Payment not found",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Use non-numeric id in the path returns 400.",
+          "Use unknown id returns 404.",
+          "Call without authentication returns 401."
+        ]
+      },
+      "put": {
+        "tags": ["Payments"],
+        "summary": "Update payment",
+        "description": "Update an existing payment record by ID.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "Payment identifier"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePaymentRequest"
+              },
+              "example": {
+                "transaction": {
+                  "amount": 175.00,
+                  "transaction_type": "debit",
+                  "description": "Updated loan payment",
+                  "account_id": 2
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Payment updated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericMessageResponse"
+                },
+                "example": {
+                  "message": "Update payment",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payment ID or validation error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Use invalid id in path returns 400.",
+          "Send invalid transaction values returns 400.",
+          "Call without authentication returns 401."
+        ]
+      },
+      "delete": {
+        "tags": ["Payments"],
+        "summary": "Delete payment",
+        "description": "Delete a payment record by ID.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "Payment identifier"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payment deleted successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericMessageResponse"
+                },
+                "example": {
+                  "message": "Delete payment",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payment ID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Use invalid id in path returns 400.",
+          "Call without authentication returns 401."
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,634 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Finance App Service - Loans API",
+    "version": "1.0.0",
+    "description": "OpenAPI documentation for the loans module of the finance tracker service. Includes loan management endpoints for authenticated users."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "Local development server"
+    }
+  ],
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "Invalid request body"
+          },
+          "details": {
+            "type": "string",
+            "example": "Key: 'CreateLoanRequest.Name' Error:Field validation for 'Name' failed on the 'required' tag"
+          },
+          "request_id": {
+            "type": "string",
+            "example": "req-123e4567-e89b-12d3-a456-426614174000"
+          }
+        }
+      },
+      "GenericMessageResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Delete loan"
+          },
+          "request_id": {
+            "type": "string",
+            "example": "req-123e4567-e89b-12d3-a456-426614174000"
+          }
+        }
+      },
+      "Loan": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32",
+            "example": 1
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "name": {
+            "type": "string",
+            "example": "Car loan"
+          },
+          "balance": {
+            "type": "number",
+            "format": "double",
+            "example": 2500.75
+          },
+          "loan_type": {
+            "type": "string",
+            "example": "debt"
+          },
+          "outstanding_amount": {
+            "type": "number",
+            "format": "double",
+            "example": 1250.25,
+            "description": "Remaining amount owed for the loan"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-06-10T12:00:00Z"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-06-10T12:00:00Z"
+          }
+        }
+      },
+      "CreateLoanRequest": {
+        "type": "object",
+        "required": ["name", "balance", "loan_type"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Car loan"
+          },
+          "balance": {
+            "type": "number",
+            "format": "double",
+            "example": 2500.75
+          },
+          "loan_type": {
+            "type": "string",
+            "example": "debt",
+            "description": "Allowed values: debt, receivable"
+          },
+          "account_id": {
+            "type": "integer",
+            "format": "int32",
+            "example": 15,
+            "description": "Optional associated account ID for loan transactions"
+          }
+        }
+      },
+      "CreateLoanResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32",
+            "example": 1
+          }
+        }
+      },
+      "UpdateLoanRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Updated car loan"
+          },
+          "balance": {
+            "type": "number",
+            "format": "double",
+            "example": 2200.50
+          },
+          "loan_type": {
+            "type": "string",
+            "example": "debt",
+            "description": "Allowed values: debt, receivable"
+          },
+          "account_id": {
+            "type": "integer",
+            "format": "int32",
+            "example": 15
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/loans": {
+      "get": {
+        "tags": ["Loans"],
+        "summary": "List loans",
+        "description": "Retrieve all loans for the authenticated user.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Loans retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Get all loans"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Loan"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "message": "Get all loans",
+                  "data": [
+                    {
+                      "id": 1,
+                      "user_id": "550e8400-e29b-41d4-a716-446655440000",
+                      "name": "Car loan",
+                      "balance": 2500.75,
+                      "loan_type": "debt",
+                      "created_at": "2026-06-10T12:00:00Z",
+                      "updated_at": "2026-06-10T12:00:00Z"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "User ID not found in JWT token",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Call without authentication returns 401.",
+          "If internal service fails, returns 500 with error payload."
+        ]
+      },
+      "post": {
+        "tags": ["Loans"],
+        "summary": "Create loan",
+        "description": "Create a new loan record for the authenticated user.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLoanRequest"
+              },
+              "example": {
+                "name": "Car loan",
+                "balance": 2500.75,
+                "loan_type": "debt",
+                "account_id": 15
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Loan created successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Create loan"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CreateLoanResponse"
+                    }
+                  }
+                },
+                "example": {
+                  "message": "Create loan",
+                  "data": {
+                    "id": 1
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed or invalid body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Validation failed",
+                  "details": "Key: 'CreateLoanRequest.LoanType' Error:Field validation for 'LoanType' failed on the 'oneof' tag",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "User ID not found in JWT token",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Send invalid JSON or missing required fields returns 400.",
+          "Omit loan_type or use unsupported value returns 400.",
+          "Call without authorization returns 401."
+        ]
+      }
+    },
+    "/api/loans/{id}": {
+      "get": {
+        "tags": ["Loans"],
+        "summary": "Get loan by ID",
+        "description": "Retrieve a single loan by its ID for the authenticated user.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "Loan identifier"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Loan retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Get loan by ID"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Loan"
+                    }
+                  }
+                },
+                "example": {
+                  "message": "Get loan by ID",
+                  "data": {
+                    "id": 1,
+                    "user_id": "550e8400-e29b-41d4-a716-446655440000",
+                    "name": "Car loan",
+                    "balance": 2500.75,
+                    "loan_type": "debt",                    "outstanding_amount": 1250.25,                    "outstanding_amount": 1250.25,
+                    "created_at": "2026-06-10T12:00:00Z",
+                    "updated_at": "2026-06-10T12:00:00Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid loan ID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Invalid loan ID",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "User ID not found in JWT token",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Loan not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Loan not found",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Use non-numeric id in the path returns 400.",
+          "Use unknown id returns 404.",
+          "Call without authentication returns 401."
+        ]
+      },
+      "put": {
+        "tags": ["Loans"],
+        "summary": "Update loan",
+        "description": "Update an existing loan record by ID.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "Loan identifier"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateLoanRequest"
+              },
+              "example": {
+                "name": "Car loan - updated",
+                "balance": 2000.5,
+                "loan_type": "debt",
+                "account_id": 15
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Loan updated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericMessageResponse"
+                },
+                "example": {
+                  "message": "Update loan",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid loan ID or validation error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Validation failed",
+                  "details": "Key: 'UpdateLoanRequest.Balance' Error:Field validation for 'Balance' failed on the 'gte' tag",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "User ID not found in JWT token",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Send invalid loan value returns 400.",
+          "Send invalid id returns 400.",
+          "Call without authorization returns 401."
+        ]
+      },
+      "delete": {
+        "tags": ["Loans"],
+        "summary": "Delete loan",
+        "description": "Delete a loan record by ID.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "Loan identifier"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Loan deleted successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericMessageResponse"
+                },
+                "example": {
+                  "message": "Delete loan",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid loan ID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Invalid loan ID",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "User ID not found in JWT token",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Delete without authentication returns 401.",
+          "Delete with nonnumeric id returns 400.",
+          "Request failure returns 500 with error response."
+        ]
+      }
+    }
+  }
+}

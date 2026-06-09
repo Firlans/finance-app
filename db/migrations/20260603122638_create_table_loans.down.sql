@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS loans;
+DROP TABLE IF EXISTS patments;
