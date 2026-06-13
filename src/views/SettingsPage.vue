@@ -2,11 +2,13 @@
 import { ref } from 'vue'
 import AccountsSection from './sections/AccountsSection.vue'
 import CategoriesSection from './sections/CategoriesSection.vue'
+import LoansSection from './sections/LoansSection.vue'
 
 const activeTab = ref('accounts')
 const tabs = [
   { id: 'accounts', label: 'Akun' },
-  { id: 'categories', label: 'Kategori' }
+  { id: 'categories', label: 'Kategori' },
+  { id: 'loans', label: 'Hutang' }
 ]
 
 const requestTabChange = (nextTab) => {
@@ -37,5 +39,6 @@ const requestTabChange = (nextTab) => {
 
     <AccountsSection v-if="activeTab === 'accounts'" />
     <CategoriesSection v-if="activeTab === 'categories'" />
+    <LoansSection v-if="activeTab === 'loans'" />
   </section>
 </template>

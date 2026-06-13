@@ -169,6 +169,79 @@ async function deleteCategory(token, id) {
   return json?.data || null
 }
 
+// ------------------------
+// Loans
+// ------------------------
+async function getLoans(token) {
+  const json = await request('/loans', {
+    headers: getAuthHeaders(token, false)
+  })
+  return json?.data || []
+}
+
+async function createLoan(token, payload) {
+  const json = await request('/loans', {
+    method: 'POST',
+    headers: getAuthHeaders(token),
+    body: JSON.stringify(payload)
+  })
+  return json?.data || null
+}
+
+async function updateLoan(token, id, payload) {
+  const json = await request(`/loans/${id}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(token),
+    body: JSON.stringify(payload)
+  })
+  return json?.data || null
+}
+
+async function deleteLoan(token, id) {
+  const json = await request(`/loans/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(token, false)
+  })
+  return json?.data || null
+}
+
+// ------------------------
+// Payments
+// ------------------------
+async function getPaymentsByLoan(token, loanId) {
+  const url = `/payments?loan_id=${encodeURIComponent(loanId)}`
+  const json = await request(url, {
+    headers: getAuthHeaders(token, false)
+  })
+  return json?.data || []
+}
+
+async function createPayment(token, payload) {
+  const json = await request('/payments', {
+    method: 'POST',
+    headers: getAuthHeaders(token),
+    body: JSON.stringify(payload)
+  })
+  return json?.data || null
+}
+
+async function updatePayment(token, id, payload) {
+  const json = await request(`/payments/${id}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(token),
+    body: JSON.stringify(payload)
+  })
+  return json?.data || null
+}
+
+async function deletePayment(token, id) {
+  const json = await request(`/payments/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(token, false)
+  })
+  return json?.data || null
+}
+
 export {
   getCurrentUser,
   refreshToken,
@@ -184,5 +257,18 @@ export {
   getCategories,
   createCategory,
   updateCategory,
-  deleteCategory
+  deleteCategory,
+
+  // loans
+  getLoans,
+  createLoan,
+  updateLoan,
+  deleteLoan,
+
+  // payments
+  getPaymentsByLoan,
+  createPayment,
+  updatePayment,
+  deletePayment
 }
+
