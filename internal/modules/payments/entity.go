@@ -5,13 +5,13 @@ import "time"
 type CreatePaymentRequest struct {
 	ID            int               `json:"id,omitempty"`
 	TransactionID int               `json:"transaction_id,omitempty"`
-	Transaction   *TransactionInput `json:"transaction,omitempty" validate:"omitempty,dive"`
+	Transaction   *TransactionInput `json:"transaction,omitempty" validate:"omitempty"`
 	LoanID        int               `json:"loan_id" validate:"required,gt=0"`
 }
 
 type UpdatePaymentRequest struct {
 	LoanID      *int              `json:"loan_id,omitempty" validate:"omitempty,gt=0"`
-	Transaction *TransactionInput `json:"transaction,omitempty" validate:"omitempty,dive"`
+	Transaction *TransactionInput `json:"transaction,omitempty" validate:"omitempty"`
 }
 
 type TransactionInput struct {
