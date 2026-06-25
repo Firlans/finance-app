@@ -60,10 +60,17 @@ func (r *repository) FindLoansByUserID(ctx context.Context, userID string) (*[]L
 				loans.loan_type,
 				loans.balance - coalesce(sum(
 					case
-						when transactions.transaction_type = 'debit' then transactions.amount
-						when transactions.transaction_type = 'credit' then -transactions.amount
+						-- Untuk debt: debit menambah outstanding, credit mengurangi
+						when loans.loan_type = 'debt' and transactions.transaction_type = 'debit' then transactions.amount
+						when loans.loan_type = 'debt' and transactions.transaction_type = 'credit' then -transactions.amount
+
+						-- Untuk receivable: outstanding berkurang saat payment
+						-- sehingga debit harus mengurangi (minus) dan credit menambah
+						when loans.loan_type = 'receivable' and transactions.transaction_type = 'debit' then -transactions.amount
+						when loans.loan_type = 'receivable' and transactions.transaction_type = 'credit' then transactions.amount
 						else 0
 					end
+
 				), 0) as outstanding_amount,
 				loans.created_at, 
 				loans.updated_at 
