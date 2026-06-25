@@ -54,6 +54,15 @@ func (h *Handler) getPayments(c *fiber.Ctx) error {
 		})
 	}
 
+	// Avoid returning nil pointer-to-slice which may cause encoder panic on some environments
+	if res == nil {
+		empty := make([]Payment, 0)
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"message": "Get payments",
+			"data":    empty,
+		})
+	}
+
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "Get payments",
 		"data":    res,
