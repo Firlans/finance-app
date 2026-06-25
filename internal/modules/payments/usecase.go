@@ -55,7 +55,8 @@ func (uc *useCase) Save(ctx context.Context, payment *CreatePaymentRequest) (int
 			return 0, err
 		}
 
-		payment.TransactionID = txn.ID
+		payment.TransactionID = &txn.ID
+
 	}
 
 	if err := uc.repo.SavePayment(ctx, payment); err != nil {
@@ -89,7 +90,8 @@ func (uc *useCase) Update(ctx context.Context, id int, payment *UpdatePaymentReq
 	if payment.Transaction != nil {
 		var txn *transactions.Transaction
 
-		if existingPayment.TransactionID == 0 {
+		if existingPayment.TransactionID == nil {
+
 			txn = &transactions.Transaction{
 				Amount:          payment.Transaction.Amount,
 				TransactionType: payment.Transaction.TransactionType,
@@ -104,9 +106,11 @@ func (uc *useCase) Update(ctx context.Context, id int, payment *UpdatePaymentReq
 				return err
 			}
 
-			existingPayment.TransactionID = txn.ID
+			existingPayment.TransactionID = &txn.ID
+
 		} else {
-			txn, err = uc.transactionRepo.GetTransactionByID(ctx, existingPayment.TransactionID)
+			txn, err = uc.transactionRepo.GetTransactionByID(ctx, *existingPayment.TransactionID)
+
 			if err != nil {
 				return err
 			}

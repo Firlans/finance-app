@@ -4,7 +4,7 @@ import "time"
 
 type CreatePaymentRequest struct {
 	ID            int               `json:"id,omitempty"`
-	TransactionID int               `json:"transaction_id,omitempty"`
+	TransactionID *int              `json:"transaction_id,omitempty"`
 	Transaction   *TransactionInput `json:"transaction,omitempty" validate:"omitempty"`
 	LoanID        int               `json:"loan_id" validate:"required,gt=0"`
 }
@@ -28,7 +28,7 @@ type CreatePaymentResponse struct {
 
 type Payment struct {
 	ID            int       `json:"id"`
-	TransactionID int       `json:"transaction_id"`
+	TransactionID *int      `json:"transaction_id"`
 	LoanID        int       `json:"loan_id"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`

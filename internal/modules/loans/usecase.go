@@ -71,7 +71,7 @@ func (uc *useCase) Save(ctx context.Context, loan *CreateLoanRequest) (int, erro
 		}
 
 		payment := &payments.CreatePaymentRequest{
-			TransactionID: txn.ID,
+			TransactionID: &txn.ID,
 			LoanID:        loan.ID,
 		}
 
@@ -80,7 +80,7 @@ func (uc *useCase) Save(ctx context.Context, loan *CreateLoanRequest) (int, erro
 		}
 	} else {
 		placeholderPayment := &payments.CreatePaymentRequest{
-			TransactionID: 0,
+			TransactionID: nil,
 			LoanID:        loan.ID,
 		}
 
@@ -169,14 +169,15 @@ func (uc *useCase) Update(ctx context.Context, id int, loan *UpdateLoanRequest) 
 		}
 
 		createPayment := &payments.CreatePaymentRequest{
-			TransactionID: txn.ID,
+			TransactionID: &txn.ID,
 			LoanID:        id,
 		}
 
 		return uc.paymentRepo.SavePayment(ctx, createPayment)
 	}
 
-	if payment.TransactionID == 0 {
+	if payment.TransactionID == nil {
+
 		amount := existingLoan.Balance
 		if loan.Balance != nil {
 			amount = *loan.Balance
@@ -206,11 +207,13 @@ func (uc *useCase) Update(ctx context.Context, id int, loan *UpdateLoanRequest) 
 			return err
 		}
 
-		payment.TransactionID = txn.ID
+		payment.TransactionID = &txn.ID
 		return uc.paymentRepo.UpdatePayment(ctx, payment)
+
 	}
 
-	txn, err := uc.transactionRepo.GetTransactionByID(ctx, payment.TransactionID)
+	txn, err := uc.transactionRepo.GetTransactionByID(ctx, *payment.TransactionID)
+
 	if err != nil {
 		return err
 	}

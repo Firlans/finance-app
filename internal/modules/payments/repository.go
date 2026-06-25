@@ -30,12 +30,13 @@ func (r *repository) SavePayment(ctx context.Context, payment *CreatePaymentRequ
 	VALUES ($1, $2, NOW(), NOW()) RETURNING id`
 
 	var transactionID interface{}
-	if payment.TransactionID != 0 {
-		transactionID = payment.TransactionID
+	if payment.TransactionID != nil {
+		transactionID = *payment.TransactionID
 	}
 
 	var id int64
 	err := r.QueryRow(ctx, query, transactionID, payment.LoanID).Scan(&id)
+
 	if err != nil {
 		return err
 	}
@@ -131,12 +132,13 @@ func (r *repository) UpdatePayment(ctx context.Context, payment *Payment) error 
 	query := `UPDATE payments SET transaction_id = $1, loan_id = $2, updated_at = NOW() WHERE id = $3`
 
 	var transactionID interface{}
-	if payment.TransactionID != 0 {
-		transactionID = payment.TransactionID
+	if payment.TransactionID != nil {
+		transactionID = *payment.TransactionID
 	}
 
 	_, err := r.Exec(ctx, query, transactionID, payment.LoanID, payment.ID)
 	return err
+
 }
 
 func (r *repository) DeletePayment(ctx context.Context, id int) error {
