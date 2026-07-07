@@ -254,6 +254,30 @@ func (uc *useCase) Delete(ctx context.Context, id int) error {
 	if id == 0 {
 		return nil
 	}
+	paymentsList, err := uc.paymentRepo.FindPaymentsByLoanID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	// 2. Lakukan looping untuk menghapus setiap transaksi dan pembayaran
+	if paymentsList != nil {
+		for _, p := range *paymentsList {
+			// Jika payment ini punya transaksi, hapus transaksinya terlebih dahulu
+			if p.TransactionID != nil {
+				// Pastikan method hapus di transactionRepo sesuai dengan interface-mu
+				err := uc.transactionRepo.DeleteTransaction(ctx, *p.TransactionID)
+				if err != nil {
+					return fmt.Errorf("failed to delete transaction for payment %d: %w", p.ID, err)
+				}
+			}
+
+			// Setelah transaksi terhapus, hapus payment-nya
+			err = uc.paymentRepo.DeletePayment(ctx, p.ID)
+			if err != nil {
+				return fmt.Errorf("failed to delete payment %d: %w", p.ID, err)
+			}
+		}
+	}
 
 	return uc.loanRepo.DeleteLoan(ctx, id)
 }

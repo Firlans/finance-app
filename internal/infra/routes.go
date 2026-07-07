@@ -6,6 +6,7 @@ import (
 	"github.com/TubagusAldiMY/finance-tracker-app/backend/internal/modules/categories"
 	"github.com/TubagusAldiMY/finance-tracker-app/backend/internal/modules/loans"
 	"github.com/TubagusAldiMY/finance-tracker-app/backend/internal/modules/payments"
+	"github.com/TubagusAldiMY/finance-tracker-app/backend/internal/modules/summary"
 	"github.com/TubagusAldiMY/finance-tracker-app/backend/internal/modules/transactions"
 	"github.com/TubagusAldiMY/finance-tracker-app/backend/internal/modules/user"
 	"github.com/gofiber/fiber/v2"
@@ -31,8 +32,10 @@ func (app *BootstrapConfig) RegisterRoutes() {
 		accounts.NewHandler(accounts.NewUseCase(accounts.NewRepository(app.DB), app.Validate)),
 		transactions.NewHandler(transactions.NewUseCase(transactions.NewRepository(app.DB), app.Validate), app.Validate),
 		categories.NewHandler(categories.NewUseCase(categories.NewRepository(app.DB), app.Validate)),
+
 		loans.NewHandler(loans.NewUseCase(loans.NewRepository(app.DB), payments.NewRepository(app.DB), transactions.NewRepository(app.DB), app.Validate), app.Validate),
 		payments.NewHandler(payments.NewUseCase(payments.NewRepository(app.DB), transactions.NewRepository(app.DB), app.Validate), app.Validate),
+		summary.NewHandler(summary.NewUseCase(summary.NewRepository(app.DB))),
 	}
 
 	for _, module := range modules {

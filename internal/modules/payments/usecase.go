@@ -154,6 +154,21 @@ func (uc *useCase) Delete(ctx context.Context, id int) error {
 	if id == 0 {
 		return nil
 	}
+	existingPayment, err := uc.repo.FindPaymentByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if existingPayment == nil {
+		return errors.New("payment not found")
+	}
 
+	// 2. Jika payment ini punya relasi ke Transaction, hapus transaksinya dulu
+	if existingPayment.TransactionID != nil {
+		// Catatan: Pastikan nama method di transactionRepo kamu adalah DeleteTransaction (atau sesuaikan jika namanya Delete)
+		err := uc.transactionRepo.DeleteTransaction(ctx, *existingPayment.TransactionID)
+		if err != nil {
+			return errors.New("failed to delete associated transaction: " + err.Error())
+		}
+	}
 	return uc.repo.DeletePayment(ctx, id)
 }
