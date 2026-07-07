@@ -236,9 +236,9 @@ func (u *useCase) ForgetPassword(ctx context.Context, req *ForgetPasswordRequest
 
 	if user == nil {
 		u.log.WithError(err).Error("ForgetPassword: unable to find user by email")
-		return ErrUserNotFound
+		// For security, don't reveal whether email exists
+		return nil
 	}
-	fmt.Println("masuk")
 
 	token := uuid.New().String()
 	expiresAt := time.Now().Add(1 * time.Hour)
