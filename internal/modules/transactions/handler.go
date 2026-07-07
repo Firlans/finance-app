@@ -125,9 +125,11 @@ func (h *Handler) createTransaction(c *fiber.Ctx) error {
 		AccountID:       req.AccountID,
 		CategoryID:      &categoryID,
 		UserID:          userID,
+		TransactionDate: req.TransactionDate,
 		CreatedAt:       now,
 		UpdatedAt:       now,
 	}
+
 	err := h.useCase.Save(c.Context(), transaction)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -187,6 +189,11 @@ func (h *Handler) updateTransaction(c *fiber.Ctx) error {
 		Description:     *req.Description,
 		CategoryID:      req.CategoryID,
 		AccountID:       *req.AccountID,
+		TransactionDate: time.Time{},
+	}
+
+	if req.TransactionDate != nil {
+		transaction.TransactionDate = *req.TransactionDate
 	}
 
 	err = h.useCase.UpdateTransaction(c.Context(), transaction)

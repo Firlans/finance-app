@@ -21,11 +21,20 @@ func NewRepository(db *pgxpool.Pool) Repository {
 }
 
 func (r *repository) Save(ctx context.Context, transaction *Transaction) error {
-	query := `INSERT INTO transactions (amount, transaction_type, description, category_id, account_id, created_at, updated_at)
-	VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`
+	query := `INSERT INTO transactions (amount, transaction_type, description, category_id, account_id, transaction_date, created_at, updated_at)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`
 	var id int
 
-	err := r.QueryRow(ctx, query, transaction.Amount, transaction.TransactionType, transaction.Description, transaction.CategoryID, transaction.AccountID, transaction.CreatedAt, transaction.UpdatedAt).Scan(&id)
+	err := r.QueryRow(ctx, query,
+		transaction.Amount,
+		transaction.TransactionType,
+		transaction.Description,
+		transaction.CategoryID,
+		transaction.AccountID,
+		transaction.TransactionDate,
+		transaction.CreatedAt,
+		transaction.UpdatedAt,
+	).Scan(&id)
 	if err != nil {
 		return err
 	}
@@ -35,7 +44,7 @@ func (r *repository) Save(ctx context.Context, transaction *Transaction) error {
 }
 
 func (r *repository) GetTransactions(ctx context.Context, userID string) ([]Transaction, error) {
-	query := `SELECT t.id, t.amount, t.transaction_type, t.description, t.category_id, t.account_id, t.created_at, t.updated_at FROM transactions t 
+	query := `SELECT t.id, t.amount, t.transaction_type, t.description, t.category_id, t.account_id, t.transaction_date, t.created_at, t.updated_at FROM transactions t 
 	JOIN accounts a ON t.account_id = a.id WHERE a.user_id = $1`
 	rows, err := r.Query(ctx, query, userID)
 	if err != nil {
@@ -46,7 +55,17 @@ func (r *repository) GetTransactions(ctx context.Context, userID string) ([]Tran
 	var transactions = make([]Transaction, 0)
 	for rows.Next() {
 		var transaction Transaction
-		err := rows.Scan(&transaction.ID, &transaction.Amount, &transaction.TransactionType, &transaction.Description, &transaction.CategoryID, &transaction.AccountID, &transaction.CreatedAt, &transaction.UpdatedAt)
+		err := rows.Scan(
+			&transaction.ID,
+			&transaction.Amount,
+			&transaction.TransactionType,
+			&transaction.Description,
+			&transaction.CategoryID,
+			&transaction.AccountID,
+			&transaction.TransactionDate,
+			&transaction.CreatedAt,
+			&transaction.UpdatedAt,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -57,11 +76,21 @@ func (r *repository) GetTransactions(ctx context.Context, userID string) ([]Tran
 }
 
 func (r *repository) GetTransactionByID(ctx context.Context, id int) (*Transaction, error) {
-	query := "SELECT id, amount, transaction_type, description, category_id, account_id, created_at, updated_at FROM transactions WHERE id = $1"
+	query := "SELECT id, amount, transaction_type, description, category_id, account_id, transaction_date, created_at, updated_at FROM transactions WHERE id = $1"
 	row := r.QueryRow(ctx, query, id)
 
 	var transaction Transaction
-	err := row.Scan(&transaction.ID, &transaction.Amount, &transaction.TransactionType, &transaction.Description, &transaction.CategoryID, &transaction.AccountID, &transaction.CreatedAt, &transaction.UpdatedAt)
+	err := row.Scan(
+		&transaction.ID,
+		&transaction.Amount,
+		&transaction.TransactionType,
+		&transaction.Description,
+		&transaction.CategoryID,
+		&transaction.AccountID,
+		&transaction.TransactionDate,
+		&transaction.CreatedAt,
+		&transaction.UpdatedAt,
+	)
 	if err != nil {
 		return nil, err
 	}

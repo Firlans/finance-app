@@ -29,6 +29,7 @@ func (uc *useCase) Save(ctx context.Context, transaction *Transaction) error {
 		return nil
 	}
 
+	// Audit fields
 	transaction.CreatedAt = time.Now().UTC()
 	transaction.UpdatedAt = transaction.CreatedAt
 
@@ -80,9 +81,16 @@ func (uc *useCase) UpdateTransaction(ctx context.Context, transaction *Transacti
 	existing.Description = req.Description
 	existing.AccountID = req.AccountID
 	existing.CategoryID = req.CategoryID
+
+	// Only update transaction_date if client provides it.
+	if !req.TransactionDate.IsZero() {
+		existing.TransactionDate = req.TransactionDate
+	}
+
 	existing.UpdatedAt = time.Now().UTC()
 
 	return uc.repo.UpdateTransaction(ctx, existing)
+
 }
 
 func (uc *useCase) DeleteTransaction(ctx context.Context, id int) error {
