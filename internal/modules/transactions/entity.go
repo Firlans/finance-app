@@ -8,7 +8,7 @@ type Transaction struct {
 	TransactionType string    `json:"transaction_type"`
 	Description     string    `json:"description"`
 	AccountID       int       `json:"account_id"`
-	CategoryID      *int      `json:"category_id,omitempty"`
+	CategoryID      *int      `json:"category_id"`
 	UserID          string    `json:"user_id"`
 	TransactionDate time.Time `json:"transaction_date"`
 	CreatedAt       time.Time `json:"created_at"`

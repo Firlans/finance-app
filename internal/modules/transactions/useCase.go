@@ -9,7 +9,7 @@ import (
 
 type UseCase interface {
 	Save(ctx context.Context, transaction *Transaction) error
-	GetTransactions(ctx context.Context, userID string) ([]Transaction, error)
+	GetTransactions(ctx context.Context, userID string, from string, to string) ([]Transaction, error)
 	GetTransactionByID(ctx context.Context, id int) (*Transaction, error)
 	UpdateTransaction(ctx context.Context, transaction *Transaction) error
 	DeleteTransaction(ctx context.Context, id int) error
@@ -40,12 +40,11 @@ func (uc *useCase) Save(ctx context.Context, transaction *Transaction) error {
 	return uc.repo.Save(ctx, transaction)
 }
 
-func (uc *useCase) GetTransactions(ctx context.Context, userID string) ([]Transaction, error) {
+func (uc *useCase) GetTransactions(ctx context.Context, userID string, from string, to string) ([]Transaction, error) {
 	if userID == "" {
 		return nil, nil
 	}
-
-	return uc.repo.GetTransactions(ctx, userID)
+	return uc.repo.GetTransactions(ctx, userID, from, to)
 }
 
 func (uc *useCase) GetTransactionByID(ctx context.Context, id int) (*Transaction, error) {

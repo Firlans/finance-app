@@ -38,8 +38,9 @@ func (h *Handler) getTransactions(c *fiber.Ctx) error {
 			"request_id": c.Locals("request_id"),
 		})
 	}
-
-	res, err := h.useCase.GetTransactions(c.Context(), userID)
+	from := c.Query("from")
+	to := c.Query("to")
+	res, err := h.useCase.GetTransactions(c.Context(), userID, from, to)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error":      err.Error(),

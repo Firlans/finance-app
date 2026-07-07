@@ -2,13 +2,14 @@ package transactions
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Repository interface {
 	Save(ctx context.Context, transaction *Transaction) error
-	GetTransactions(ctx context.Context, userID string) ([]Transaction, error)
+	GetTransactions(ctx context.Context, userID string, from string, to string) ([]Transaction, error)
 	GetTransactionByID(ctx context.Context, id int) (*Transaction, error)
 	UpdateTransaction(ctx context.Context, transaction *Transaction) error
 	DeleteTransaction(ctx context.Context, id int) error
@@ -43,10 +44,32 @@ func (r *repository) Save(ctx context.Context, transaction *Transaction) error {
 	return nil
 }
 
-func (r *repository) GetTransactions(ctx context.Context, userID string) ([]Transaction, error) {
+func (r *repository) GetTransactions(ctx context.Context, userID string, from string, to string) ([]Transaction, error) {
 	query := `SELECT t.id, t.amount, t.transaction_type, t.description, t.category_id, t.account_id, t.transaction_date, t.created_at, t.updated_at FROM transactions t 
 	JOIN accounts a ON t.account_id = a.id WHERE a.user_id = $1`
-	rows, err := r.Query(ctx, query, userID)
+	var args []interface{}
+	args = append(args, userID)
+	argID := 2 // Argumen berikutnya dimulai dari index 2 ($2)
+
+	// Jika filter 'from' diberikan, tambahkan ke query
+	if from != "" {
+		query += fmt.Sprintf(" AND t.transaction_date >= $%d", argID)
+		args = append(args, from)
+		argID++
+	}
+
+	// Jika filter 'to' diberikan, tambahkan ke query
+	if to != "" {
+		query += fmt.Sprintf(" AND t.transaction_date <= $%d", argID)
+		args = append(args, to)
+		argID++
+	}
+
+	// Tambahkan ORDER BY agar data transaksi selalu urut dari yang paling baru
+	query += " ORDER BY t.transaction_date DESC"
+
+	// Gunakan args... agar semua parameter yang di-append masuk ke Query
+	rows, err := r.Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
