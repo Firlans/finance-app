@@ -1,0 +1,123 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Finance App Service API - Summary Routes",
+    "version": "1.0.0",
+    "description": "OpenAPI documentation for summary routes."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "Local development server"
+    }
+  ],
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" },
+          "details": { "type": "string" },
+          "request_id": { "type": "string" }
+        }
+      },
+      "TransactionCategoryBalance": {
+        "type": "object",
+        "properties": {
+          "category_name": { "type": "string" },
+          "balance": { "type": "number", "format": "double" }
+        }
+      },
+      "TransactionCategoryBalanceListResponse": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string" },
+          "data": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/TransactionCategoryBalance" }
+          },
+          "request_id": { "type": "string" }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/summary": {
+      "get": {
+        "tags": ["Summary"],
+        "summary": "Get transactions summary per category (debit/credit)",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "module",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "enum": ["debit", "credit"] },
+            "description": "debit = pemasukan, credit = pengeluaran"
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "example": "2026-05-25" }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "example": "2026-06-25" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Summary returned successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionCategoryBalanceListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized access.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
