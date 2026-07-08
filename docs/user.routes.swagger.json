@@ -605,81 +605,44 @@
     }
   },
   "paths": {
-    "/api/payments": {
-      "get": {
+    "/api/users/forget-password": {
+      "post": {
         "tags": [
-          "Payments"
+          "User"
         ],
-        "summary": "List payments by loan",
-        "description": "Retrieve all payments associated with a specific loan.",
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "loan_id",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            },
-            "description": "Loan identifier to filter payments"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Payments retrieved successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "example": "Get payments"
-                    },
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Payment"
-                      }
-                    }
-                  }
-                },
-                "example": {
-                  "message": "Get payments",
-                  "data": [
-                    {
-                      "id": 1,
-                      "transaction_id": 10,
-                      "loan_id": 5,
-                      "created_at": "2026-06-10T12:00:00Z",
-                      "updated_at": "2026-06-10T12:00:00Z"
-                    }
-                  ]
-                }
+        "summary": "Request password reset",
+        "description": "Send a password reset email link to the user's email address.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgetPasswordRequest"
+              },
+              "example": {
+                "email": "tubagus@example.com"
               }
             }
-          },
-          "400": {
-            "description": "Invalid or missing loan_id parameter.",
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password reset link sent.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/ForgotPasswordResponse"
                 },
                 "example": {
-                  "error": "loan_id query parameter is required",
+                  "message": "Password reset link sent to your email",
                   "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
                 }
               }
             }
           },
-          "401": {
-            "description": "Unauthorized request.",
+          "400": {
+            "description": "Invalid request body.",
             "content": {
               "application/json": {
                 "schema": {
@@ -700,84 +663,80 @@
           }
         },
         "x-negative-tests": [
-          "Call without loan_id query parameter returns 400.",
-          "Call without authentication returns 401.",
-          "Use invalid loan_id value returns 400."
+          "Send invalid email format returns 400.",
+          "Send empty body returns 400.",
+          "Send valid email but broken SMTP or DB path returns 500."
         ]
-      },
+      }
+    },
+    "/api/users/register": {
       "post": {
         "tags": [
-          "Payments"
+          "User"
         ],
-        "summary": "Create payment",
-        "description": "Create a new payment record for a loan.",
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
+        "summary": "Register new user",
+        "description": "Create a new user account with username, email, and password.",
+        "security": [],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreatePaymentRequest"
+                "$ref": "#/components/schemas/RegisterRequest"
               },
               "example": {
-                "loan_id": 5,
-                "transaction": {
-                  "amount": 150.0,
-                  "transaction_type": "debit",
-                  "description": "Loan payment",
-                  "account_id": 2,
-                  "category_id": 3
-                }
+                "username": "tubagus_aldi",
+                "email": "tubagus@example.com",
+                "password": "RahasiaNegara123!"
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Payment created successfully.",
+            "description": "User registered successfully.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "example": "Create payment"
-                    },
-                    "data": {
-                      "$ref": "#/components/schemas/CreatePaymentResponse"
-                    }
-                  }
+                  "$ref": "#/components/schemas/RegisterResponse"
                 },
                 "example": {
-                  "message": "Create payment",
                   "data": {
-                    "id": 1
-                  }
+                    "id": "550e8400-e29b-41d4-a716-446655440000",
+                    "username": "tubagus_aldi",
+                    "email": "tubagus@example.com",
+                    "created_at": "2025-01-01T15:00:00Z"
+                  },
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
                 }
               }
             }
           },
           "400": {
-            "description": "Validation failed or invalid body.",
+            "description": "Validation failed or invalid JSON.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Validation failed",
+                  "details": "Key: 'RegisterRequest.Email' Error:Field validation for 'Email' failed on the 'email' tag",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
                 }
               }
             }
           },
-          "401": {
-            "description": "Unauthorized request.",
+          "409": {
+            "description": "Email or username already taken.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Email already taken",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
                 }
               }
             }
@@ -794,99 +753,191 @@
           }
         },
         "x-negative-tests": [
-          "Create payment without loan_id returns 400.",
-          "Create payment with unsupported transaction_type returns 400.",
-          "Call without authentication returns 401."
+          "Send invalid JSON without required fields returns 400.",
+          "Send malformed email returns 400 validation error.",
+          "Attempt registration with duplicate email or username returns 409."
         ]
       }
     },
-    "/api/payments/{id}": {
-      "get": {
+    "/api/users/logout": {
+      "post": {
         "tags": [
-          "Payments"
+          "User"
         ],
-        "summary": "Get payment by ID",
-        "description": "Retrieve payment details by payment ID.",
+        "summary": "Logout user",
+        "description": "Invalidate current JWT session token.",
         "security": [
           {
             "BearerAuth": []
           }
         ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            },
-            "description": "Payment identifier"
-          }
-        ],
         "responses": {
           "200": {
-            "description": "Payment retrieved successfully.",
+            "description": "Logout successful.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "example": "Get payment by ID"
-                    },
-                    "data": {
-                      "$ref": "#/components/schemas/Payment"
-                    }
-                  }
+                  "$ref": "#/components/schemas/GenericMessageResponse"
                 },
                 "example": {
-                  "message": "Get payment by ID",
-                  "data": {
-                    "id": 1,
-                    "transaction_id": 10,
-                    "loan_id": 5,
-                    "created_at": "2026-06-10T12:00:00Z",
-                    "updated_at": "2026-06-10T12:00:00Z"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid payment ID.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
-                "example": {
-                  "error": "Invalid payment ID",
+                  "message": "Logout successful. Token has been invalidated.",
+                  "user_id": "550e8400-e29b-41d4-a716-446655440000",
                   "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
                 }
               }
             }
           },
           "401": {
-            "description": "Unauthorized request.",
+            "description": "Unauthorized or missing token.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Unauthorized",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Call without Authorization header returns 401.",
+          "Call with expired or invalid token returns 401.",
+          "Call with malformed JWT returns 401."
+        ]
+      }
+    },
+    "/api/users/refresh-token": {
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Refresh access token",
+        "description": "Issue a new access token using the current valid token. The old token is invalidated (blacklisted).",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "New access token issued successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                },
+                "example": {
+                  "data": {
+                    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                    "token_type": "Bearer",
+                    "user": {
+                      "id": "550e8400-e29b-41d4-a716-446655440000",
+                      "username": "tubagus_aldi",
+                      "email": "tubagus@example.com",
+                      "created_at": "2025-01-01T15:00:00Z"
+                    }
+                  },
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or token not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Unauthorized",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Call without Authorization header returns 401.",
+          "Call with expired or invalid token returns 401.",
+          "Call with blacklisted token returns 401."
+        ]
+      }
+    },
+    "/api/users/reset-password": {
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Reset password with token",
+        "description": "Reset a user's password using a password reset token.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordWithTokenRequest"
+              },
+              "example": {
+                "token": "550e8400-e29b-41d4-a716-446655440000",
+                "new_password": "RahasiaNegara456!",
+                "confirm_password": "RahasiaNegara456!"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password reset successful.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericMessageResponse"
+                },
+                "example": {
+                  "message": "Password reset successful",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid token or request data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Invalid password reset token",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
                 }
               }
             }
           },
           "404": {
-            "description": "Payment not found.",
+            "description": "User not found for token.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 },
                 "example": {
-                  "error": "Payment not found",
+                  "error": "User not found",
                   "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
                 }
               }
@@ -904,32 +955,114 @@
           }
         },
         "x-negative-tests": [
-          "Use non-numeric id in the path returns 400.",
-          "Use unknown id returns 404.",
-          "Call without authentication returns 401."
+          "Send expired or invalid token returns 400.",
+          "Send unmatched confirm_password returns 400.",
+          "Send token for missing user returns 404."
         ]
-      },
-      "put": {
+      }
+    },
+    "/api/users/login": {
+      "post": {
         "tags": [
-          "Payments"
+          "User"
         ],
-        "summary": "Update payment",
-        "description": "Update an existing payment record by ID.",
+        "summary": "Login user",
+        "description": "Authenticate user and return JWT access token.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              },
+              "example": {
+                "email": "tubagus@example.com",
+                "password": "RahasiaNegara123!"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User authenticated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                },
+                "example": {
+                  "data": {
+                    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                    "token_type": "Bearer",
+                    "user": {
+                      "id": "550e8400-e29b-41d4-a716-446655440000",
+                      "username": "tubagus_aldi",
+                      "email": "tubagus@example.com",
+                      "created_at": "2025-01-01T15:00:00Z"
+                    }
+                  },
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body or validation failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Invalid request Body",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Invalid credentials",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Send empty password or invalid email returns 400.",
+          "Provide wrong credentials returns 401.",
+          "Omit body entirely returns 400 with invalid request error."
+        ]
+      }
+    },
+    "/api/users/change-password": {
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Change password",
+        "description": "Update the authenticated user's password.",
         "security": [
           {
             "BearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            },
-            "description": "Payment identifier"
           }
         ],
         "requestBody": {
@@ -937,36 +1070,32 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdatePaymentRequest"
+                "$ref": "#/components/schemas/ResetPasswordRequest"
               },
               "example": {
-                "transaction": {
-                  "amount": 175.0,
-                  "transaction_type": "debit",
-                  "description": "Updated loan payment",
-                  "account_id": 2
-                }
+                "current_password": "RahasiaNegara123!",
+                "new_password": "RahasiaNegara456!"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Payment updated successfully.",
+            "description": "Password changed successfully.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GenericMessageResponse"
                 },
                 "example": {
-                  "message": "Update payment",
+                  "message": "Password reset successful",
                   "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
                 }
               }
             }
           },
           "400": {
-            "description": "Invalid payment ID or validation error.",
+            "description": "Invalid request data.",
             "content": {
               "application/json": {
                 "schema": {
@@ -976,11 +1105,15 @@
             }
           },
           "401": {
-            "description": "Unauthorized request.",
+            "description": "Invalid current password or unauthorized.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Invalid current password",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
                 }
               }
             }
@@ -997,65 +1130,54 @@
           }
         },
         "x-negative-tests": [
-          "Use invalid id in path returns 400.",
-          "Send invalid transaction values returns 400.",
-          "Call without authentication returns 401."
+          "Send wrong current_password returns 401.",
+          "Send missing new_password returns 400 validation error.",
+          "Send malformed JSON returns 400."
         ]
-      },
-      "delete": {
+      }
+    },
+    "/api/users/current": {
+      "get": {
         "tags": [
-          "Payments"
+          "User"
         ],
-        "summary": "Delete payment",
-        "description": "Delete a payment record by ID.",
+        "summary": "Get current user profile",
+        "description": "Retrieve profile information for the authenticated user.",
         "security": [
           {
             "BearerAuth": []
           }
         ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            },
-            "description": "Payment identifier"
-          }
-        ],
         "responses": {
           "200": {
-            "description": "Payment deleted successfully.",
+            "description": "User profile returned.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GenericMessageResponse"
+                  "$ref": "#/components/schemas/RegisterResponse"
                 },
                 "example": {
-                  "message": "Delete payment",
+                  "data": {
+                    "id": "550e8400-e29b-41d4-a716-446655440000",
+                    "username": "tubagus_aldi",
+                    "email": "tubagus@example.com",
+                    "created_at": "2025-01-01T15:00:00Z"
+                  },
                   "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
                 }
               }
             }
           },
-          "400": {
-            "description": "Invalid payment ID.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "401": {
-            "description": "Unauthorized request.",
+            "description": "Unauthorized access.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Unauthorized",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
                 }
               }
             }
@@ -1072,8 +1194,8 @@
           }
         },
         "x-negative-tests": [
-          "Use invalid id in path returns 400.",
-          "Call without authentication returns 401."
+          "Call with no Authorization header returns 401.",
+          "Call with invalid user_id in JWT returns 401 or error response."
         ]
       }
     }

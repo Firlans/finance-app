@@ -1,9 +1,9 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "Finance App Service - Loans API",
+    "title": "Finance App Service API",
     "version": "1.0.0",
-    "description": "OpenAPI documentation for the loans module of the finance tracker service. Includes loan management endpoints for authenticated users."
+    "description": "OpenAPI documentation for all active routes in the finance-app-service-features project. Includes expected success responses, common error responses, and negative testing scenarios."
   },
   "servers": [
     {
@@ -25,6 +25,15 @@
       }
     },
     "schemas": {
+      "RequestIDMap": {
+        "type": "object",
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "example": "req-123e4567-e89b-12d3-a456-426614174000"
+          }
+        }
+      },
       "ErrorResponse": {
         "type": "object",
         "properties": {
@@ -34,11 +43,205 @@
           },
           "details": {
             "type": "string",
-            "example": "Key: 'CreateLoanRequest.Name' Error:Field validation for 'Name' failed on the 'required' tag"
+            "example": "Key: 'RegisterRequest.Email' Error:Field validation for 'Email' failed on the 'email' tag"
           },
           "request_id": {
             "type": "string",
             "example": "req-123e4567-e89b-12d3-a456-426614174000"
+          }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "ok"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ReadyResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "ready"
+          }
+        }
+      },
+      "UserResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "username": {
+            "type": "string",
+            "example": "tubagus_aldi"
+          },
+          "email": {
+            "type": "string",
+            "example": "tubagus@example.com"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-01-01T15:00:00Z"
+          }
+        }
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "required": [
+          "username",
+          "email",
+          "password"
+        ],
+        "properties": {
+          "username": {
+            "type": "string",
+            "example": "tubagus_aldi"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "tubagus@example.com"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "example": "RahasiaNegara123!"
+          }
+        }
+      },
+      "RegisterResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/UserResponse"
+          },
+          "request_id": {
+            "type": "string",
+            "example": "req-123e4567-e89b-12d3-a456-426614174000"
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "tubagus@example.com"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "example": "RahasiaNegara123!"
+          }
+        }
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "access_token": {
+                "type": "string",
+                "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+              },
+              "token_type": {
+                "type": "string",
+                "example": "Bearer"
+              },
+              "user": {
+                "$ref": "#/components/schemas/UserResponse"
+              }
+            }
+          },
+          "request_id": {
+            "type": "string",
+            "example": "req-123e4567-e89b-12d3-a456-426614174000"
+          }
+        }
+      },
+      "ResetPasswordRequest": {
+        "type": "object",
+        "required": [
+          "current_password",
+          "new_password"
+        ],
+        "properties": {
+          "current_password": {
+            "type": "string",
+            "format": "password",
+            "example": "RahasiaNegara123!"
+          },
+          "new_password": {
+            "type": "string",
+            "format": "password",
+            "example": "RahasiaNegara456!"
+          }
+        }
+      },
+      "ForgetPasswordRequest": {
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "tubagus@example.com"
+          }
+        }
+      },
+      "ForgotPasswordResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Password reset link sent to your email"
+          },
+          "request_id": {
+            "type": "string",
+            "example": "req-123e4567-e89b-12d3-a456-426614174000"
+          }
+        }
+      },
+      "ResetPasswordWithTokenRequest": {
+        "type": "object",
+        "required": [
+          "token",
+          "new_password",
+          "confirm_password"
+        ],
+        "properties": {
+          "token": {
+            "type": "string",
+            "format": "uuid",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "new_password": {
+            "type": "string",
+            "format": "password",
+            "example": "RahasiaNegara456!"
+          },
+          "confirm_password": {
+            "type": "string",
+            "format": "password",
+            "example": "RahasiaNegara456!"
           }
         }
       },
@@ -47,7 +250,7 @@
         "properties": {
           "message": {
             "type": "string",
-            "example": "Delete loan"
+            "example": "Password reset successful"
           },
           "request_id": {
             "type": "string",
@@ -55,107 +258,347 @@
           }
         }
       },
-      "Loan": {
+      "Account": {
         "type": "object",
         "properties": {
           "id": {
             "type": "integer",
             "format": "int32",
-            "example": 1
+            "example": 123
           },
           "user_id": {
             "type": "string",
-            "format": "uuid",
             "example": "550e8400-e29b-41d4-a716-446655440000"
           },
-          "name": {
+          "account_name": {
             "type": "string",
-            "example": "Car loan"
+            "example": "Personal Savings"
+          },
+          "description": {
+            "type": "string",
+            "example": "Primary savings account"
           },
           "balance": {
             "type": "number",
             "format": "double",
             "example": 2500.75
-          },
-          "loan_type": {
-            "type": "string",
-            "example": "debt"
-          },
-          "outstanding_amount": {
-            "type": "number",
-            "format": "double",
-            "example": 1250.25,
-            "description": "Remaining amount owed for the loan"
           },
           "created_at": {
             "type": "string",
             "format": "date-time",
-            "example": "2026-06-10T12:00:00Z"
-          },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time",
-            "example": "2026-06-10T12:00:00Z"
+            "example": "2025-10-01T10:00:00Z"
           }
         }
       },
-      "CreateLoanRequest": {
+      "CreateAccountRequest": {
         "type": "object",
-        "required": ["name", "balance", "loan_type"],
+        "required": [
+          "account_name",
+          "balance"
+        ],
         "properties": {
-          "name": {
+          "account_name": {
             "type": "string",
-            "example": "Car loan"
+            "example": "Personal Savings"
+          },
+          "description": {
+            "type": "string",
+            "example": "Primary savings account"
           },
           "balance": {
             "type": "number",
             "format": "double",
             "example": 2500.75
-          },
-          "loan_type": {
-            "type": "string",
-            "example": "debt",
-            "description": "Allowed values: debt, receivable"
-          },
-          "account_id": {
-            "type": "integer",
-            "format": "int32",
-            "example": 15,
-            "description": "Optional associated account ID for loan transactions"
           }
         }
       },
-      "CreateLoanResponse": {
+      "CreateAccountResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Create account"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int32",
+                "example": 123
+              }
+            }
+          },
+          "request_id": {
+            "type": "string",
+            "example": "req-123e4567-e89b-12d3-a456-426614174000"
+          }
+        }
+      },
+      "AccountListResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Get all accounts"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Account"
+            }
+          },
+          "request_id": {
+            "type": "string",
+            "example": "req-123e4567-e89b-12d3-a456-426614174000"
+          }
+        }
+      },
+      "Transaction": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32",
+            "example": 345
+          },
+          "amount": {
+            "type": "number",
+            "format": "double",
+            "example": 125.5
+          },
+          "transaction_type": {
+            "type": "string",
+            "example": "debit"
+          },
+          "description": {
+            "type": "string",
+            "example": "Office supplies"
+          },
+          "account_id": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "user_id": {
+            "type": "string",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "transaction_date": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-11-01T12:00:00Z"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-11-01T12:00:00Z"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-11-01T12:00:00Z"
+          }
+        }
+      },
+      "CreateTransactionRequest": {
+        "type": "object",
+        "required": [
+          "amount",
+          "transaction_type",
+          "account_id",
+          "transaction_date"
+        ],
+        "properties": {
+          "amount": {
+            "type": "number",
+            "format": "double",
+            "example": 125.5
+          },
+          "transaction_type": {
+            "type": "string",
+            "example": "debit",
+            "enum": [
+              "debit",
+              "credit"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "example": "Office supplies"
+          },
+          "account_id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "transaction_date": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-11-01T12:00:00Z"
+          }
+        }
+      },
+      "UpdateTransactionRequest": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "format": "double",
+            "example": 200.0
+          },
+          "transaction_type": {
+            "type": "string",
+            "example": "credit",
+            "enum": [
+              "debit",
+              "credit"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "example": "Invoice payment"
+          },
+          "account_id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "transaction_date": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-11-01T12:00:00Z"
+          }
+        }
+      },
+      "TransactionListResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Get all transactions"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Transaction"
+            }
+          },
+          "request_id": {
+            "type": "string",
+            "example": "req-123e4567-e89b-12d3-a456-426614174000"
+          }
+        }
+      },
+      "TransactionDetailResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Get transaction by ID"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Transaction"
+          },
+          "request_id": {
+            "type": "string",
+            "example": "req-123e4567-e89b-12d3-a456-426614174000"
+          }
+        }
+      },
+      "Category": {
         "type": "object",
         "properties": {
           "id": {
             "type": "integer",
             "format": "int32",
             "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Food & Beverage"
+          },
+          "description": {
+            "type": "string",
+            "example": "Daily meals and drinks"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-05-24T10:00:00Z"
           }
         }
       },
-      "UpdateLoanRequest": {
+      "CreateCategoryRequest": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Food & Beverage"
+          },
+          "description": {
+            "type": "string",
+            "example": "Daily meals and drinks"
+          }
+        }
+      },
+      "UpdateCategoryRequest": {
         "type": "object",
         "properties": {
           "name": {
             "type": "string",
-            "example": "Updated car loan"
+            "example": "Transportation"
           },
-          "balance": {
-            "type": "number",
-            "format": "double",
-            "example": 2200.50
-          },
-          "loan_type": {
+          "description": {
             "type": "string",
-            "example": "debt",
-            "description": "Allowed values: debt, receivable"
+            "example": "Fuel, toll, and parking"
+          }
+        }
+      },
+      "CreateCategoryResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Create category"
           },
-          "account_id": {
+          "data": {
             "type": "integer",
             "format": "int32",
-            "example": 15
+            "example": 1
+          },
+          "request_id": {
+            "type": "string",
+            "example": "req-123e4567-e89b-12d3-a456-426614174000"
+          }
+        }
+      },
+      "CategoryListResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Get all categories"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Category"
+            }
+          }
+        }
+      },
+      "CategoryDetailResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Get category by ID"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Category"
           }
         }
       }
@@ -164,7 +607,9 @@
   "paths": {
     "/api/loans": {
       "get": {
-        "tags": ["Loans"],
+        "tags": [
+          "Loans"
+        ],
         "summary": "List loans",
         "description": "Retrieve all loans for the authenticated user.",
         "security": [
@@ -240,7 +685,9 @@
         ]
       },
       "post": {
-        "tags": ["Loans"],
+        "tags": [
+          "Loans"
+        ],
         "summary": "Create loan",
         "description": "Create a new loan record for the authenticated user.",
         "security": [
@@ -339,7 +786,9 @@
     },
     "/api/loans/{id}": {
       "get": {
-        "tags": ["Loans"],
+        "tags": [
+          "Loans"
+        ],
         "summary": "Get loan by ID",
         "description": "Retrieve a single loan by its ID for the authenticated user.",
         "security": [
@@ -383,7 +832,8 @@
                     "user_id": "550e8400-e29b-41d4-a716-446655440000",
                     "name": "Car loan",
                     "balance": 2500.75,
-                    "loan_type": "debt",                    "outstanding_amount": 1250.25,                    "outstanding_amount": 1250.25,
+                    "loan_type": "debt",
+                    "outstanding_amount": 1250.25,
                     "created_at": "2026-06-10T12:00:00Z",
                     "updated_at": "2026-06-10T12:00:00Z"
                   }
@@ -451,7 +901,9 @@
         ]
       },
       "put": {
-        "tags": ["Loans"],
+        "tags": [
+          "Loans"
+        ],
         "summary": "Update loan",
         "description": "Update an existing loan record by ID.",
         "security": [
@@ -549,7 +1001,9 @@
         ]
       },
       "delete": {
-        "tags": ["Loans"],
+        "tags": [
+          "Loans"
+        ],
         "summary": "Delete loan",
         "description": "Delete a loan record by ID.",
         "security": [

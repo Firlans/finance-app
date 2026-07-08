@@ -605,12 +605,144 @@
     }
   },
   "paths": {
-    "/api/summary": {
+    "/api/accounts": {
       "get": {
         "tags": [
-          "Summary"
+          "Accounts"
         ],
-        "summary": "Get transactions summary per category (debit/credit)",
+        "summary": "Get all accounts",
+        "description": "Retrieve all accounts belonging to the authenticated user.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Accounts returned successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized access.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Call without Authorization header returns 401.",
+          "Call with invalid bearer token returns 401."
+        ]
+      },
+      "post": {
+        "tags": [
+          "Accounts"
+        ],
+        "summary": "Create an account",
+        "description": "Create a new account for the authenticated user.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAccountRequest"
+              },
+              "example": {
+                "account_name": "Personal Savings",
+                "description": "Primary savings account",
+                "balance": 2500.75
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Account created successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateAccountResponse"
+                },
+                "example": {
+                  "message": "Create account",
+                  "data": {
+                    "id": 123
+                  },
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Send missing account_name returns 400.",
+          "Send negative balance returns 400 validation error.",
+          "Call without auth returns 401."
+        ]
+      }
+    },
+    "/api/accounts/{id}": {
+      "put": {
+        "tags": [
+          "Accounts"
+        ],
+        "summary": "Update account",
+        "description": "Update an existing account by its ID.",
         "security": [
           {
             "BearerAuth": []
@@ -618,50 +750,51 @@
         ],
         "parameters": [
           {
-            "name": "module",
-            "in": "query",
+            "name": "id",
+            "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "enum": [
-                "debit",
-                "credit"
-              ]
+              "type": "integer",
+              "format": "int32"
             },
-            "description": "debit = pemasukan, credit = pengeluaran"
-          },
-          {
-            "name": "from",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "example": "2026-05-25"
-            }
-          },
-          {
-            "name": "to",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "example": "2026-06-25"
-            }
+            "description": "Account ID"
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAccountRequest"
+              },
+              "example": {
+                "account_name": "Updated Savings",
+                "description": "Updated description",
+                "balance": 3000.0
+              }
+            }
+          }
+        },
         "responses": {
-          "200": {
-            "description": "Summary returned successfully.",
+          "201": {
+            "description": "Account updated successfully.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TransactionCategoryBalanceListResponse"
+                  "$ref": "#/components/schemas/GenericMessageResponse"
+                },
+                "example": {
+                  "message": "Update account",
+                  "data": {
+                    "id": 123
+                  },
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
                 }
               }
             }
           },
           "400": {
-            "description": "Bad request.",
+            "description": "Invalid account ID or request body.",
             "content": {
               "application/json": {
                 "schema": {
@@ -690,7 +823,86 @@
               }
             }
           }
-        }
+        },
+        "x-negative-tests": [
+          "Send non-numeric id returns 400.",
+          "Send invalid request body returns 400.",
+          "Call without auth returns 401."
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Accounts"
+        ],
+        "summary": "Delete account",
+        "description": "Delete an account by its ID.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "Account ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Account deleted successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericMessageResponse"
+                },
+                "example": {
+                  "message": "Delete account",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid account ID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized access.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Send invalid account id returns 400.",
+          "Call without auth returns 401."
+        ]
       }
     }
   }

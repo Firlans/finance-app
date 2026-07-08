@@ -605,92 +605,69 @@
     }
   },
   "paths": {
-    "/api/summary": {
+    "/ready": {
       "get": {
         "tags": [
-          "Summary"
+          "System"
         ],
-        "summary": "Get transactions summary per category (debit/credit)",
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "module",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "debit",
-                "credit"
-              ]
-            },
-            "description": "debit = pemasukan, credit = pengeluaran"
-          },
-          {
-            "name": "from",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "example": "2026-05-25"
-            }
-          },
-          {
-            "name": "to",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "example": "2026-06-25"
-            }
-          }
-        ],
+        "summary": "Readiness probe",
+        "description": "Checks database readiness and returns service readiness status.",
+        "security": [],
         "responses": {
           "200": {
-            "description": "Summary returned successfully.",
+            "description": "Service is ready.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TransactionCategoryBalanceListResponse"
+                  "$ref": "#/components/schemas/ReadyResponse"
                 }
               }
             }
           },
-          "400": {
-            "description": "Bad request.",
+          "503": {
+            "description": "Database not available.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized access.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "database not available",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
                 }
               }
             }
           }
-        }
+        },
+        "x-negative-tests": [
+          "Database connection unavailable returns 503 with error detail.",
+          "Invalid method returns 405 if other HTTP verbs are used."
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "summary": "Health check",
+        "description": "Returns service health status without authentication.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Service is healthy.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Not applicable for health endpoint because it does not accept a request body."
+        ]
       }
     }
   }
