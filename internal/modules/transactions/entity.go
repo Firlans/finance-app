@@ -20,7 +20,7 @@ type CreateTransactionRequest struct {
 	TransactionType string    `json:"transaction_type" validate:"required,oneof=debit credit"`
 	Description     string    `json:"description,omitempty" validate:"max=255"`
 	AccountID       int       `json:"account_id" validate:"required"`
-	CategoryID      int       `json:"category_id" validate:"required"`
+	CategoryID      *int      `json:"category_id" validate:"omitempty"`
 	TransactionDate time.Time `json:"transaction_date" validate:"required"`
 }
 
@@ -29,6 +29,6 @@ type UpdateTransactionRequest struct {
 	TransactionType *string    `json:"transaction_type,omitempty" validate:"omitempty,oneof=debit credit"`
 	Description     *string    `json:"description,omitempty" validate:"omitempty,max=255"`
 	AccountID       *int       `json:"account_id" validate:"required"`
-	CategoryID      *int       `json:"category_id" validate:"required"`
+	CategoryID      *int       `json:"category_id" validate:"omitempty"`
 	TransactionDate *time.Time `json:"transaction_date,omitempty" validate:"omitempty"`
 }

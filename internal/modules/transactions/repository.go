@@ -122,8 +122,8 @@ func (r *repository) GetTransactionByID(ctx context.Context, id int) (*Transacti
 }
 
 func (r *repository) UpdateTransaction(ctx context.Context, transaction *Transaction) error {
-	query := "UPDATE transactions SET amount = $1, transaction_type = $2, description = $3, category_id = $4, account_id = $5, updated_at = $6 WHERE id = $7"
-	_, err := r.Exec(ctx, query, transaction.Amount, transaction.TransactionType, transaction.Description, transaction.CategoryID, transaction.AccountID, transaction.UpdatedAt, transaction.ID)
+	query := "UPDATE transactions SET amount = $1, transaction_type = $2, description = $3, category_id = $4, account_id = $5, updated_at = $6, transaction_date = $7 WHERE id = $8"
+	_, err := r.Exec(ctx, query, transaction.Amount, transaction.TransactionType, transaction.Description, transaction.CategoryID, transaction.AccountID, transaction.UpdatedAt, transaction.TransactionDate, transaction.ID)
 	return err
 }
 

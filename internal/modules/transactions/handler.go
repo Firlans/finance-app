@@ -118,13 +118,12 @@ func (h *Handler) createTransaction(c *fiber.Ctx) error {
 	}
 
 	now := time.Now().UTC()
-	categoryID := req.CategoryID
 	transaction := &Transaction{
 		Amount:          req.Amount,
 		TransactionType: req.TransactionType,
 		Description:     req.Description,
 		AccountID:       req.AccountID,
-		CategoryID:      &categoryID,
+		CategoryID:      req.CategoryID,
 		UserID:          userID,
 		TransactionDate: req.TransactionDate,
 		CreatedAt:       now,
@@ -190,11 +189,7 @@ func (h *Handler) updateTransaction(c *fiber.Ctx) error {
 		Description:     *req.Description,
 		CategoryID:      req.CategoryID,
 		AccountID:       *req.AccountID,
-		TransactionDate: time.Time{},
-	}
-
-	if req.TransactionDate != nil {
-		transaction.TransactionDate = *req.TransactionDate
+		TransactionDate: *req.TransactionDate,
 	}
 
 	err = h.useCase.UpdateTransaction(c.Context(), transaction)
