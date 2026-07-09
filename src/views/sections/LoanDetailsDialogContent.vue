@@ -2,7 +2,7 @@
 import { computed, reactive, ref } from 'vue'
 import BaseInput from '@packages/components/base/BaseInput.vue'
 import { Notification } from '@packages/utils/Notification.js'
-import { createPayment } from '@/DataService.js'
+import { createPayment, updatePayment } from '@/DataService.js'
 import { getAccounts, getCategories } from '@/DataService.js'
 
 
@@ -26,6 +26,8 @@ const form = reactive({
   category_id: ''
 })
 
+const editingPaymentId = ref(null)
+
 const token = localStorage.getItem('access_token')
 
 const loadLookups = async () => {
@@ -48,9 +50,10 @@ const openAddPayment = async () => {
   }
 
   showAddPaymentForm.value = true
-
+  editingPaymentId.value = null
 
   // defaults
+  form.amount = ''
   form.transaction_type = 'debit'
   form.description = ''
   form.category_id = ''
@@ -60,8 +63,24 @@ const openAddPayment = async () => {
   }
 }
 
+const openEditPayment = async (payment) => {
+  if (!accounts.value.length && !categories.value.length) {
+    await loadLookups()
+  }
+
+  showAddPaymentForm.value = true
+  editingPaymentId.value = payment.id
+
+  form.amount = payment.transaction?.amount ? String(payment.transaction.amount) : ''
+  form.transaction_type = payment.transaction?.transaction_type || 'debit'
+  form.description = payment.transaction?.description || ''
+  form.account_id = payment.transaction?.account_id ? String(payment.transaction.account_id) : ''
+  form.category_id = payment.transaction?.category_id ? String(payment.transaction.category_id) : ''
+}
+
 const closeAddPayment = () => {
   showAddPaymentForm.value = false
+  editingPaymentId.value = null
 }
 
 const numericAmount = (value) => {
@@ -82,7 +101,7 @@ const submitAddPayment = async () => {
 
   loading.value = true
   try {
-    await createPayment(token, {
+    const payload = {
       loan_id: props.loan.id,
       transaction: {
         amount: Number(form.amount),
@@ -91,15 +110,20 @@ const submitAddPayment = async () => {
         account_id: Number(form.account_id),
         ...(form.category_id ? { category_id: Number(form.category_id) } : {})
       }
-    })
+    }
 
-    notification.showSuccess('Payment berhasil ditambahkan')
-    // Setelah submit, parent (LoansSection) akan tetap pegang payments,
-    // jadi kita emit event agar daftar payments direfresh.
+    if (editingPaymentId.value) {
+      await updatePayment(token, editingPaymentId.value, payload)
+      notification.showSuccess('Payment berhasil diperbarui')
+    } else {
+      await createPayment(token, payload)
+      notification.showSuccess('Payment berhasil ditambahkan')
+    }
+
     emit('payment-added')
     closeAddPayment()
   } catch (error) {
-    notification.showError(error?.message || 'Gagal menambahkan payment')
+    notification.showError(error?.message || 'Gagal menyimpan payment')
   } finally {
     loading.value = false
   }
@@ -150,7 +174,7 @@ const paymentsTotal = computed(() => props.payments.length)
       </div>
 
       <div v-if="showAddPaymentForm" class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-        <p class="text-sm font-semibold text-slate-900 mb-3">Form Payment</p>
+        <p class="text-sm font-semibold text-slate-900 mb-3">{{ editingPaymentId ? 'Edit Payment' : 'Form Payment' }}</p>
         <form @submit.prevent="submitAddPayment" class="grid gap-4 md:grid-cols-2">
           <BaseInput
             v-model="form.amount"
@@ -234,8 +258,9 @@ const paymentsTotal = computed(() => props.payments.length)
           <thead>
             <tr class="text-xs text-slate-500">
               <th class="px-3 py-2">ID</th>
-              <th class="px-3 py-2">Transaction ID</th>
+              <th class="px-3 py-2">Balance</th>
               <th class="px-3 py-2">Created</th>
+              <th class="px-3 py-2">Aksi</th>
             </tr>
           </thead>
           <tbody>
@@ -245,8 +270,16 @@ const paymentsTotal = computed(() => props.payments.length)
               class="rounded-xl bg-slate-50 text-sm shadow-sm"
             >
               <td class="px-3 py-2 text-slate-900">{{ p.id }}</td>
-              <td class="px-3 py-2 text-slate-700">{{ p.transaction_id }}</td>
+              <td class="px-3 py-2 text-slate-700">{{ formatCurrency(p.transaction?.amount) }}</td>
               <td class="px-3 py-2 text-slate-500">{{ formatDate(p.created_at) }}</td>
+              <td class="px-3 py-2">
+                <button
+                  @click="openEditPayment(p)"
+                  class="rounded-lg bg-blue-100 px-3 py-1 text-xs text-blue-700 transition hover:bg-blue-200"
+                >
+                  Edit
+                </button>
+              </td>
             </tr>
           </tbody>
         </table>

@@ -167,7 +167,20 @@ const navigateTo = (path) => {
 
     <!-- Screenshot Slideshow Section (Reusable Component) -->
     <SliderFeature title="Fitur Aplikasi" subtitle="Semua yang kamu butuhkan ada di sini" :subjects="screenshots"
-      :autoPlayInterval="4000" />
+      :autoPlayInterval="4000"
+      rootClass="py-12 sm:py-20 px-4 bg-transparent"
+      containerClass="max-w-7xl mx-auto text-center relative"
+      titleClass="text-2xl sm:text-3xl font-bold text-slate-800 mb-3 sm:mb-4"
+      subtitleClass="text-sm sm:text-base text-slate-600 mb-8 sm:mb-12"
+      frameClass="overflow-hidden rounded-2xl max-w-4xl mx-auto shadow-xl"
+      trackClass="flex transition-transform duration-700 ease-in-out"
+      slideClass="w-full flex-shrink-0 bg-white p-6 sm:p-10"
+      prevButtonClass="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-3 sm:p-4 bg-white/90 hover:bg-white text-blue-600 rounded-full shadow-lg backdrop-blur-sm transition-all hover:scale-110"
+      nextButtonClass="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-3 sm:p-4 bg-white/90 hover:bg-white text-blue-600 rounded-full shadow-lg backdrop-blur-sm transition-all hover:scale-110"
+      dotsClass="flex justify-center gap-3 mt-8"
+      dotClass="w-3 h-3 rounded-full transition-all duration-500 ease-in-out"
+      activeDotClass="bg-blue-600 w-8"
+      inactiveDotClass="bg-slate-300 hover:bg-slate-400" />
 
     <!-- Features Section -->
     <section class="py-12 sm:py-20 px-4">

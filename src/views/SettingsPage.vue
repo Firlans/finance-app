@@ -1,20 +1,16 @@
 <script setup>
 import { ref } from 'vue'
+import { ToggleFeature } from '@packages/components'
 import AccountsSection from './sections/AccountsSection.vue'
 import CategoriesSection from './sections/CategoriesSection.vue'
 import LoansSection from './sections/LoansSection.vue'
 
 const activeTab = ref('accounts')
 const tabs = [
-  { id: 'accounts', label: 'Akun' },
-  { id: 'categories', label: 'Kategori' },
-  { id: 'loans', label: 'Hutang' }
+  { value: 'accounts', label: 'Akun' },
+  { value: 'categories', label: 'Kategori' },
+  { value: 'loans', label: 'Hutang' }
 ]
-
-const requestTabChange = (nextTab) => {
-  if (nextTab === activeTab.value) return
-  activeTab.value = nextTab
-}
 </script>
 
 <template>
@@ -25,16 +21,11 @@ const requestTabChange = (nextTab) => {
     </div>
 
     <!-- Tabs -->
-    <div class="flex gap-1 rounded-2xl bg-slate-100 p-1 w-fit">
-      <button
-        v-for="tab in tabs"
-        :key="tab.id"
-        @click="requestTabChange(tab.id)"
-        class="rounded-xl px-5 py-2 text-sm font-semibold transition"
-        :class="activeTab === tab.id ? 'bg-white text-slate-900 shadow' : 'text-slate-500 hover:text-slate-700'"
-      >
-        {{ tab.label }}
-      </button>
+    <div class="w-full md:max-w-xl">
+      <ToggleFeature 
+        v-model="activeTab" 
+        :options="tabs" 
+      />
     </div>
 
     <AccountsSection v-if="activeTab === 'accounts'" />

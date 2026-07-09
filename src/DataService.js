@@ -95,10 +95,24 @@ async function deleteAccount(token, id) {
   return json?.data || null
 }
 
-async function getTransactions(token) {
-  const json = await request('/transactions', {
+async function getTransactions(token, from = null, to = null) {
+  let url = '/transactions'
+  const params = new URLSearchParams()
+
+  // Tambahkan parameter jika nilai from/to dikirimkan
+  if (from) params.append('from', from)
+  if (to) params.append('to', to)
+
+  // Gabungkan URL dengan query string jika ada
+  const queryString = params.toString()
+  if (queryString) {
+    url += `?${queryString}`
+  }
+
+  const json = await request(url, {
     headers: getAuthHeaders(token, false)
   })
+
   return json?.data || []
 }
 
