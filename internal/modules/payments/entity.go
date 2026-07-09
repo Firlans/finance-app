@@ -1,6 +1,10 @@
 package payments
 
-import "time"
+import (
+	"time"
+
+	"github.com/TubagusAldiMY/finance-tracker-app/backend/internal/modules/transactions"
+)
 
 type CreatePaymentRequest struct {
 	ID            int               `json:"id,omitempty"`
@@ -27,11 +31,12 @@ type CreatePaymentResponse struct {
 }
 
 type Payment struct {
-	ID            int       `json:"id"`
-	TransactionID *int      `json:"transaction_id"`
-	LoanID        int       `json:"loan_id"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	ID            int                       `json:"id"`
+	TransactionID *int                      `json:"transaction_id"`
+	Transaction   *transactions.Transaction `json:"transaction,omitempty"`
+	LoanID        int                       `json:"loan_id"`
+	CreatedAt     time.Time                 `json:"created_at"`
+	UpdatedAt     time.Time                 `json:"updated_at"`
 }
 
 type ListPaymentsRequest struct {

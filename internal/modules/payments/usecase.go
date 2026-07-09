@@ -139,7 +139,18 @@ func (uc *useCase) GetPaymentByID(ctx context.Context, id int) (*Payment, error)
 		return nil, nil
 	}
 
-	return uc.repo.FindPaymentByID(ctx, id)
+	payment, err := uc.repo.FindPaymentByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if payment != nil && payment.TransactionID != nil {
+		txn, err := uc.transactionRepo.GetTransactionByID(ctx, *payment.TransactionID)
+		if err == nil && txn != nil {
+			payment.Transaction = txn
+		}
+	}
+
+	return payment, nil
 }
 
 func (uc *useCase) GetPaymentsByLoanID(ctx context.Context, loanID int) (*[]Payment, error) {
@@ -147,7 +158,22 @@ func (uc *useCase) GetPaymentsByLoanID(ctx context.Context, loanID int) (*[]Paym
 		return nil, nil
 	}
 
-	return uc.repo.FindPaymentsByLoanID(ctx, loanID)
+	payments, err := uc.repo.FindPaymentsByLoanID(ctx, loanID)
+	if err != nil {
+		return nil, err
+	}
+	if payments != nil {
+		for i := range *payments {
+			if (*payments)[i].TransactionID != nil {
+				txn, err := uc.transactionRepo.GetTransactionByID(ctx, *(*payments)[i].TransactionID)
+				if err == nil && txn != nil {
+					(*payments)[i].Transaction = txn
+				}
+			}
+		}
+	}
+
+	return payments, nil
 }
 
 func (uc *useCase) Delete(ctx context.Context, id int) error {
