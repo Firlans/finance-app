@@ -444,7 +444,7 @@
           "amount": {
             "type": "number",
             "format": "double",
-            "example": 200.0
+            "example": 200
           },
           "transaction_type": {
             "type": "string",
@@ -599,6 +599,39 @@
           },
           "data": {
             "$ref": "#/components/schemas/Category"
+          }
+        }
+      },
+      "TransactionCategoryBalance": {
+        "type": "object",
+        "properties": {
+          "category_name": {
+            "type": "string",
+            "example": "Food & Beverage"
+          },
+          "balance": {
+            "type": "number",
+            "format": "double",
+            "example": 102123
+          }
+        }
+      },
+      "TransactionCategoryBalanceListResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Get transactions summary"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransactionCategoryBalance"
+            }
+          },
+          "request_id": {
+            "type": "string",
+            "example": "req-123e4567-e89b-12d3-a456-426614174000"
           }
         }
       }

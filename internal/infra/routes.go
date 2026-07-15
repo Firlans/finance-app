@@ -30,12 +30,12 @@ func (app *BootstrapConfig) RegisterRoutes() {
 	modules := []routeRegistrar{
 		user.NewHandler(user.NewUseCase(user.NewRepository(app.DB), app.Log, app.Validate, app.Config, mailSender)),
 		accounts.NewHandler(accounts.NewUseCase(accounts.NewRepository(app.DB), app.Validate)),
+		summary.NewHandler(summary.NewUseCase(summary.NewRepository(app.DB))),
 		transactions.NewHandler(transactions.NewUseCase(transactions.NewRepository(app.DB), app.Validate), app.Validate),
 		categories.NewHandler(categories.NewUseCase(categories.NewRepository(app.DB), app.Validate)),
 
 		loans.NewHandler(loans.NewUseCase(loans.NewRepository(app.DB), payments.NewRepository(app.DB), transactions.NewRepository(app.DB), app.Validate), app.Validate),
 		payments.NewHandler(payments.NewUseCase(payments.NewRepository(app.DB), transactions.NewRepository(app.DB), app.Validate), app.Validate),
-		summary.NewHandler(summary.NewUseCase(summary.NewRepository(app.DB))),
 	}
 
 	for _, module := range modules {

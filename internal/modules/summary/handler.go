@@ -19,6 +19,21 @@ func (h *Handler) RegisterRoutes(app *fiber.App, authMiddleware fiber.Handler, r
 	summaryGroup.Get("/", h.GetSummary)
 }
 
+// GetSummary godoc
+// @Summary      Get transactions summary
+// @Description  Get transactions summary by module (debit/credit) and date range
+// @Tags         Summary
+// @Accept       json
+// @Produce      json
+// @Param        module query string true "Module (debit/credit)" Enums(debit, credit)
+// @Param        from query string true "Start date (YYYY-MM-DD)"
+// @Param        to query string true "End date (YYYY-MM-DD)"
+// @Success      200  {object}  TransactionCategoryBalanceListResponse
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      401  {object}  map[string]interface{}
+// @Failure      500  {object}  map[string]interface{}
+// @Security     BearerAuth
+// @Router       /summary [get]
 func (h *Handler) GetSummary(c *fiber.Ctx) error {
 	userID, ok := c.Locals("user_id").(string)
 	if !ok || userID == "" {
