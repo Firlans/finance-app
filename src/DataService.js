@@ -142,6 +142,25 @@ async function deleteTransaction(token, id) {
   return json?.data || null
 }
 
+async function getSummary(token, module, from = null, to = null) {
+  let url = '/summary'
+  const params = new URLSearchParams()
+  if (module) params.append('module', module)
+  if (from) params.append('from', from)
+  if (to) params.append('to', to)
+
+  const queryString = params.toString()
+  if (queryString) {
+    url += `?${queryString}`
+  }
+
+  const json = await request(url, {
+    headers: getAuthHeaders(token, false)
+  })
+
+  return json?.data || []
+}
+
 async function logout(token) {
   const json = await request('/users/logout', {
     method: 'POST',
@@ -267,6 +286,7 @@ export {
   createTransaction,
   updateTransaction,
   deleteTransaction,
+  getSummary,
   logout,
   getCategories,
   createCategory,

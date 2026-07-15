@@ -1,9 +1,9 @@
 <script setup>
-import { ref, onMounted, shallowRef } from 'vue'
+import { ref, onMounted, shallowRef, nextTick } from 'vue'
 import Chart from 'chart.js/auto'
 import dayjs from 'dayjs'
 // Import DataService yang sudah ada di repo (apps/finance-app/src/DataService.js)
-import { getTransactions } from '@/DataService.js'
+import { getTransactions, getSummary, getAccounts } from '@/DataService.js'
 import { ToggleFeature } from '@packages/components'
 
 const transactionType = ref('credit') // Default: credit (Pengeluaran)
@@ -29,6 +29,27 @@ const chartTransactions = shallowRef([])
 const chartLabels = ref([])
 const selectedTransactions = ref(null)
 const selectedLabel = ref('')
+const accountsMap = ref({})
+
+// Summary State
+const pieChartCanvas = ref(null)
+const pieChartInstance = shallowRef(null)
+const rawSummaryData = shallowRef([]) 
+const activeCategoryFilters = ref(new Set())
+
+const categoryColors = [
+  '#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', 
+  '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16'
+]
+
+const toggleCategoryFilter = (categoryName) => {
+  if (activeCategoryFilters.value.has(categoryName)) {
+    activeCategoryFilters.value.delete(categoryName)
+  } else {
+    activeCategoryFilters.value.add(categoryName)
+  }
+  renderPieChart()
+}
 
 // 1. Load dari LocalStorage saat pertama kali dirender
 onMounted(() => {
@@ -81,11 +102,35 @@ const fetchDataAndRender = async () => {
 
   try {
     let rawTransactions = []
+    let summaryRes = []
+    let accountsRes = []
     if (fromDate && toDate) {
-      rawTransactions = await getTransactions(token, fromDate, toDate)
+      const [txs, sum, accs] = await Promise.all([
+        getTransactions(token, fromDate, toDate),
+        getSummary(token, transactionType.value, fromDate, toDate),
+        getAccounts(token)
+      ])
+      rawTransactions = txs
+      summaryRes = sum
+      accountsRes = accs
     } else {
-      rawTransactions = await getTransactions(token)
+      const [txs, sum, accs] = await Promise.all([
+        getTransactions(token),
+        getSummary(token, transactionType.value),
+        getAccounts(token)
+      ])
+      rawTransactions = txs
+      summaryRes = sum
+      accountsRes = accs
     }
+
+    accountsMap.value = accountsRes.reduce((acc, account) => {
+      acc[account.id] = account.account_name
+      return acc
+    }, {})
+
+    rawSummaryData.value = summaryRes
+    activeCategoryFilters.value = new Set(summaryRes.map(item => item.category_name))
 
     // 1. Filter data berdasarkan transaction_type ('credit' atau 'debit')
     const filteredData = rawTransactions.filter(
@@ -190,7 +235,9 @@ const fetchDataAndRender = async () => {
     selectedLabel.value = ''
 
     // 5. Render ke Chart
+    await nextTick()
     renderChart(finalLabels, dataValues)
+    renderPieChart()
 
   } catch (error) {
     console.error('Gagal memuat data chart dashboard:', error)
@@ -315,6 +362,113 @@ const renderChart = (labels, dataValues) => {
     },
   })
 }
+
+const renderPieChart = () => {
+  if (!pieChartCanvas.value) return
+
+  if (pieChartInstance.value) {
+    pieChartInstance.value.destroy()
+  }
+
+  const filteredData = rawSummaryData.value.filter(item => 
+    activeCategoryFilters.value.has(item.category_name)
+  )
+
+  const labels = filteredData.map(item => item.category_name)
+  const data = filteredData.map(item => item.balance)
+  const totalAmount = data.reduce((sum, val) => sum + val, 0)
+  
+  // Create color mapping based on original index in rawSummaryData so colors don't shift when filtering
+  const bgColors = filteredData.map(item => {
+    const idx = rawSummaryData.value.findIndex(r => r.category_name === item.category_name)
+    return categoryColors[idx % categoryColors.length]
+  })
+
+  const centerTextPlugin = {
+    id: 'centerText',
+    beforeDraw: (chart) => {
+      const { width, height, ctx } = chart
+      ctx.restore()
+      
+      ctx.font = '500 12px Inter, sans-serif'
+      ctx.textBaseline = 'middle'
+      ctx.fillStyle = '#6b7280' // text-gray-500
+      
+      const text = 'Total'
+      const textX = Math.round((width - ctx.measureText(text).width) / 2)
+      const textY = height / 2 - 10
+      ctx.fillText(text, textX, textY)
+      
+      ctx.font = '700 16px Inter, sans-serif'
+      ctx.fillStyle = '#1f2937' // text-gray-800
+      
+      const valueText = `Rp ${totalAmount.toLocaleString('id-ID')}`
+      const valueTextX = Math.round((width - ctx.measureText(valueText).width) / 2)
+      const valueTextY = height / 2 + 10
+      ctx.fillText(valueText, valueTextX, valueTextY)
+      
+      ctx.save()
+    }
+  }
+
+  const sliceLabelPlugin = {
+    id: 'sliceLabel',
+    afterDraw: (chart) => {
+      const { ctx, data } = chart
+      ctx.save()
+      ctx.font = '600 11px Inter, sans-serif'
+      ctx.fillStyle = '#ffffff'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+
+      const meta = chart.getDatasetMeta(0)
+      meta.data.forEach((element, index) => {
+        const val = data.datasets[0].data[index]
+        if (val === 0 || totalAmount === 0) return
+        
+        const percentVal = (val / totalAmount) * 100
+        // Tampilkan persentase jika porsinya >= 5% agar tulisan tidak berdesakan
+        if (percentVal < 5) return
+
+        const percentageText = percentVal.toFixed(0) + '%'
+        
+        const position = element.tooltipPosition()
+        ctx.fillText(percentageText, position.x, position.y)
+      })
+      ctx.restore()
+    }
+  }
+
+  pieChartInstance.value = new Chart(pieChartCanvas.value, {
+    type: 'doughnut',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: data,
+        backgroundColor: bgColors,
+        borderWidth: 1
+      }]
+    },
+    plugins: [centerTextPlugin, sliceLabelPlugin],
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '70%', // Make the doughnut hole slightly larger for text
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return ` ${context.label}: Rp ${context.parsed.toLocaleString('id-ID')}`
+            }
+          }
+        }
+      }
+    }
+  })
+}
 </script>
 
 <template>
@@ -346,6 +500,44 @@ const renderChart = (labels, dataValues) => {
       <canvas ref="chartCanvas"></canvas>
     </div>
 
+    <!-- Summary by Category Section -->
+    <div class="mt-8 border-t border-gray-100 pt-6">
+      <h3 class="text-lg font-semibold text-gray-800 mb-4">
+        Summary Kategori
+      </h3>
+      <div v-if="rawSummaryData.length === 0" class="text-sm text-gray-500 bg-gray-50 p-4 rounded-lg text-center">
+        Tidak ada data summary pada periode ini.
+      </div>
+      <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="md:col-span-1 border border-gray-100 rounded-lg p-4 bg-gray-50 max-h-[300px] overflow-y-auto">
+          <h4 class="text-sm font-medium text-gray-600 mb-3">Filter Kategori</h4>
+          <div class="space-y-2">
+            <label 
+              v-for="(item, idx) in rawSummaryData" 
+              :key="item.category_name"
+              class="flex items-center space-x-2 cursor-pointer text-sm text-gray-700 hover:bg-gray-100 p-1.5 rounded transition"
+            >
+              <input 
+                type="checkbox" 
+                :checked="activeCategoryFilters.has(item.category_name)"
+                @change="toggleCategoryFilter(item.category_name)"
+                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <div 
+                class="w-3 h-3 rounded-full flex-shrink-0" 
+                :style="{ backgroundColor: categoryColors[idx % categoryColors.length] }"
+              ></div>
+              <span class="flex-1 truncate">{{ item.category_name }}</span>
+              <span class="font-medium text-gray-900 text-xs text-right ml-auto">Rp {{ item.balance.toLocaleString('id-ID') }}</span>
+            </label>
+          </div>
+        </div>
+        <div class="md:col-span-2 relative w-full h-[300px]">
+          <canvas ref="pieChartCanvas"></canvas>
+        </div>
+      </div>
+    </div>
+
     <!-- Transaction List Below Chart -->
     <div v-if="selectedTransactions !== null" class="mt-8 border-t border-gray-100 pt-6">
       <h3 class="text-lg font-semibold text-gray-800 mb-4">
@@ -362,7 +554,7 @@ const renderChart = (labels, dataValues) => {
           </div>
           <div :class="tx.transaction_type === 'credit' ? 'text-red-600' : 'text-green-600'" class="font-semibold text-right">
             {{ tx.transaction_type === 'credit' ? '-' : '+' }}Rp {{ tx.amount.toLocaleString('id-ID') }}
-            <div class="text-xs text-gray-500 mt-1 font-normal">{{ tx.account_name || 'Akun' }}</div>
+            <div class="text-xs text-gray-500 mt-1 font-normal">{{ accountsMap[tx.account_id] || 'Akun' }}</div>
           </div>
         </div>
       </div>
