@@ -21,22 +21,24 @@ func (r *repository) GetSummaryByModule(ctx context.Context, userID string, modu
 	var query string
 	if module == ModuleCredit {
 		query = `SELECT
-			c.name AS category_name,
-			ABS(COALESCE(SUM(CASE WHEN t.transaction_type = 'credit' THEN t.amount ELSE 0 END), 0)) AS balance
+			COALESCE(c.name, 'Uncategorized') AS category_name,
+			ABS(COALESCE(SUM(t.amount), 0)) AS balance
 		FROM transactions t
 		JOIN accounts a ON t.account_id = a.id
-		JOIN categories c ON c.id = t.category_id
+		LEFT JOIN categories c ON c.id = t.category_id
 		WHERE a.user_id = $1
+		  AND t.transaction_type = 'credit'
 		  AND t.transaction_date BETWEEN $2 AND $3
 		GROUP BY c.name`
 	} else {
 		query = `SELECT
-			c.name AS category_name,
-			ABS(COALESCE(SUM(CASE WHEN t.transaction_type = 'debit' THEN t.amount ELSE 0 END), 0)) AS balance
+			COALESCE(c.name, 'Uncategorized') AS category_name,
+			ABS(COALESCE(SUM(t.amount), 0)) AS balance
 		FROM transactions t
 		JOIN accounts a ON t.account_id = a.id
-		JOIN categories c ON c.id = t.category_id
+		LEFT JOIN categories c ON c.id = t.category_id
 		WHERE a.user_id = $1
+		  AND t.transaction_type = 'debit'
 		  AND t.transaction_date BETWEEN $2 AND $3
 		GROUP BY c.name`
 	}

@@ -76,10 +76,11 @@ func (h *Handler) GetSummary(c *fiber.Ctx) error {
 		})
 	}
 
-	fromUTC := time.Date(from.Year(), from.Month(), from.Day(), 0, 0, 0, 0, time.UTC)
-	toUTC := time.Date(to.Year(), to.Month(), to.Day(), 23, 59, 59, 999999999, time.UTC)
+	// Gunakan zona waktu lokal atau default dari server agar sinkron dengan database
+	fromLocal := time.Date(from.Year(), from.Month(), from.Day(), 0, 0, 0, 0, time.Local)
+	toLocal := time.Date(to.Year(), to.Month(), to.Day(), 23, 59, 59, 999999999, time.Local)
 
-	balances, err := h.useCase.GetSummaryByModule(c.Context(), userID, Module(module), fromUTC, toUTC)
+	balances, err := h.useCase.GetSummaryByModule(c.Context(), userID, Module(module), fromLocal, toLocal)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error":      err.Error(),
