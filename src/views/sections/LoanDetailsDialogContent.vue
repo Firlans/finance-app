@@ -23,7 +23,8 @@ const form = reactive({
   transaction_type: 'debit',
   description: '',
   account_id: '',
-  category_id: ''
+  category_id: '',
+  transaction_date: ''
 })
 
 const editingPaymentId = ref(null)
@@ -57,6 +58,7 @@ const openAddPayment = async () => {
   form.transaction_type = 'debit'
   form.description = ''
   form.category_id = ''
+  form.transaction_date = new Date().toISOString().slice(0, 10)
 
   if (accounts.value.length && !form.account_id) {
     form.account_id = String(accounts.value[0].id)
@@ -76,6 +78,7 @@ const openEditPayment = async (payment) => {
   form.description = payment.transaction?.description || ''
   form.account_id = payment.transaction?.account_id ? String(payment.transaction.account_id) : ''
   form.category_id = payment.transaction?.category_id ? String(payment.transaction.category_id) : ''
+  form.transaction_date = payment.transaction?.transaction_date ? payment.transaction.transaction_date.slice(0, 10) : new Date().toISOString().slice(0, 10)
 }
 
 const closeAddPayment = () => {
@@ -108,7 +111,8 @@ const submitAddPayment = async () => {
         transaction_type: form.transaction_type,
         ...(form.description.trim() ? { description: form.description.trim() } : {}),
         account_id: Number(form.account_id),
-        ...(form.category_id ? { category_id: Number(form.category_id) } : {})
+        ...(form.category_id ? { category_id: Number(form.category_id) } : {}),
+        transaction_date: new Date(form.transaction_date).toISOString()
       }
     }
 
@@ -204,6 +208,15 @@ const paymentsTotal = computed(() => props.payments.length)
               v-model="form.description"
               label="Deskripsi"
               placeholder="Opsional: pembayaran hutang"
+            />
+          </div>
+
+          <div class="md:col-span-2">
+            <BaseInput
+              v-model="form.transaction_date"
+              label="Tanggal Transaksi"
+              type="date"
+              required
             />
           </div>
 
