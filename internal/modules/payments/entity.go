@@ -22,8 +22,9 @@ type TransactionInput struct {
 	Amount          float64 `json:"amount" validate:"required,gte=0"`
 	TransactionType string  `json:"transaction_type" validate:"required,oneof=debit credit"`
 	Description     string  `json:"description,omitempty" validate:"max=255"`
-	AccountID       int     `json:"account_id" validate:"required,gt=0"`
-	CategoryID      *int    `json:"category_id,omitempty"`
+	AccountID       int       `json:"account_id" validate:"required,gt=0"`
+	CategoryID      *int      `json:"category_id,omitempty"`
+	TransactionDate time.Time `json:"transaction_date" validate:"required"`
 }
 
 type CreatePaymentResponse struct {

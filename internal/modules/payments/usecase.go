@@ -47,6 +47,7 @@ func (uc *useCase) Save(ctx context.Context, payment *CreatePaymentRequest) (int
 			Description:     payment.Transaction.Description,
 			AccountID:       payment.Transaction.AccountID,
 			CategoryID:      payment.Transaction.CategoryID,
+			TransactionDate: payment.Transaction.TransactionDate,
 			CreatedAt:       time.Now().UTC(),
 			UpdatedAt:       time.Now().UTC(),
 		}
@@ -98,6 +99,7 @@ func (uc *useCase) Update(ctx context.Context, id int, payment *UpdatePaymentReq
 				Description:     payment.Transaction.Description,
 				AccountID:       payment.Transaction.AccountID,
 				CategoryID:      payment.Transaction.CategoryID,
+				TransactionDate: payment.Transaction.TransactionDate,
 				CreatedAt:       time.Now().UTC(),
 				UpdatedAt:       time.Now().UTC(),
 			}
@@ -123,6 +125,7 @@ func (uc *useCase) Update(ctx context.Context, id int, payment *UpdatePaymentReq
 			txn.Description = payment.Transaction.Description
 			txn.AccountID = payment.Transaction.AccountID
 			txn.CategoryID = payment.Transaction.CategoryID
+			txn.TransactionDate = payment.Transaction.TransactionDate
 			txn.UpdatedAt = time.Now().UTC()
 
 			if err := uc.transactionRepo.UpdateTransaction(ctx, txn); err != nil {

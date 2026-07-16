@@ -640,7 +640,8 @@
         "required": [
           "amount",
           "transaction_type",
-          "account_id"
+          "account_id",
+          "transaction_date"
         ],
         "properties": {
           "amount": {
@@ -665,6 +666,11 @@
             "type": "integer",
             "format": "int32",
             "example": 3
+          },
+          "transaction_date": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-11-01T12:00:00Z"
           }
         }
       },
