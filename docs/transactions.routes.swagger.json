@@ -137,6 +137,36 @@
         ],
         "summary": "Get all transactions",
         "description": "Retrieve all transactions for the authenticated user.",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "2026-05-25"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "2026-06-25"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "example": 1
+            },
+            "description": "Page number for pagination. If not provided or 0, retrieves all."
+          }
+        ],
         "security": [
           {
             "BearerAuth": []

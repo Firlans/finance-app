@@ -40,7 +40,15 @@ func (h *Handler) getTransactions(c *fiber.Ctx) error {
 	}
 	from := c.Query("from")
 	to := c.Query("to")
-	res, err := h.useCase.GetTransactions(c.Context(), userID, from, to)
+	pageParam := c.Query("page")
+	var page int
+	if pageParam != "" {
+		p, err := strconv.Atoi(pageParam)
+		if err == nil && p > 0 {
+			page = p
+		}
+	}
+	res, err := h.useCase.GetTransactions(c.Context(), userID, from, to, page)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error":      err.Error(),

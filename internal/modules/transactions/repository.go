@@ -9,7 +9,7 @@ import (
 
 type Repository interface {
 	Save(ctx context.Context, transaction *Transaction) error
-	GetTransactions(ctx context.Context, userID string, from string, to string) ([]Transaction, error)
+	GetTransactions(ctx context.Context, userID string, from string, to string, page int) ([]Transaction, error)
 	GetTransactionByID(ctx context.Context, id int) (*Transaction, error)
 	UpdateTransaction(ctx context.Context, transaction *Transaction) error
 	DeleteTransaction(ctx context.Context, id int) error
@@ -44,7 +44,7 @@ func (r *repository) Save(ctx context.Context, transaction *Transaction) error {
 	return nil
 }
 
-func (r *repository) GetTransactions(ctx context.Context, userID string, from string, to string) ([]Transaction, error) {
+func (r *repository) GetTransactions(ctx context.Context, userID string, from string, to string, page int) ([]Transaction, error) {
 	query := `SELECT t.id, t.amount, t.transaction_type, t.description, t.category_id, t.account_id, t.transaction_date, t.created_at, t.updated_at FROM transactions t 
 	JOIN accounts a ON t.account_id = a.id WHERE a.user_id = $1`
 	var args []interface{}
@@ -67,6 +67,12 @@ func (r *repository) GetTransactions(ctx context.Context, userID string, from st
 
 	// Tambahkan ORDER BY agar data transaksi selalu urut dari yang paling baru
 	query += " ORDER BY t.transaction_date DESC"
+
+	if page > 0 {
+		limit := 100
+		offset := (page - 1) * limit
+		query += fmt.Sprintf(" LIMIT %d OFFSET %d", limit, offset)
+	}
 
 	// Gunakan args... agar semua parameter yang di-append masuk ke Query
 	rows, err := r.Query(ctx, query, args...)
