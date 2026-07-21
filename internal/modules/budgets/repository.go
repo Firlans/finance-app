@@ -49,6 +49,12 @@ func (r *repository) UpsertBudget(ctx context.Context, budget *Budget, categoryI
 			return err
 		}
 
+		// Also update the budget_history amount for current and future periods
+		_, err = tx.Exec(ctx, "UPDATE budget_history SET amount = $1 WHERE budget_id = $2 AND end_date >= CURRENT_DATE", budget.Amount, budget.ID)
+		if err != nil {
+			return err
+		}
+
 		_, err = tx.Exec(ctx, "DELETE FROM budget_categories WHERE budget_id = $1", budget.ID)
 		if err != nil {
 			return err
