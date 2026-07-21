@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref, computed, onMounted, nextTick, h } from 'vue'
+import { reactive, ref, computed, onMounted, nextTick, h, onUnmounted, watch } from 'vue'
 import { BaseInput, BaseLookup, BaseSelect, BaseRoll, ToggleFeature } from '@packages/components'
 import dayjs from "dayjs"
 import 'dayjs/locale/id'
@@ -26,6 +26,11 @@ const editingId = ref(null)
 const formRef = ref(null)
 const selectedMobileTransaction = ref(null)
 const token = localStorage.getItem('access_token')
+const currentPage = ref(1)
+const hasMore = ref(true)
+const loadMoreObserverRef = ref(null)
+let observer = null
+const isLoadingMore = ref(false)
 
 const form = reactive({
   transaction_date: dayjs().format('YYYY-MM-DD'),
@@ -169,16 +174,44 @@ const loadAccounts = async () => {
   }
 }
 
-const loadTransactions = async () => {
+const loadTransactions = async (isLoadMore = false) => {
+  if (isLoadMore) {
+    isLoadingMore.value = true
+  }
   try {
-    const transactionsData = await getTransactions(token)
-    transactions.value = transactionsData.map((transaction) => ({
+    if (!isLoadMore) {
+      currentPage.value = 1
+      hasMore.value = true
+    }
+    const transactionsData = await getTransactions(token, null, null, currentPage.value)
+    
+    if (transactionsData.length < 100) {
+      hasMore.value = false
+    }
+
+    const mapped = transactionsData.map((transaction) => ({
       ...transaction,
       type: transaction.transaction_type
     }))
+
+    if (isLoadMore) {
+      transactions.value = [...transactions.value, ...mapped]
+    } else {
+      transactions.value = mapped
+    }
   } catch (error) {
     notification.showError(error?.message || 'Gagal memuat transaksi')
+  } finally {
+    if (isLoadMore) {
+      isLoadingMore.value = false
+    }
   }
+}
+
+const handleLoadMore = async () => {
+  if (!hasMore.value || isLoadingMore.value) return
+  currentPage.value++
+  await loadTransactions(true)
 }
 
 const resetForm = () => {
@@ -349,6 +382,26 @@ onMounted(async () => {
   } finally {
     loading.stop()
   }
+
+  observer = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting && hasMore.value) {
+      handleLoadMore()
+    }
+  }, {
+    rootMargin: '100px'
+  })
+
+  watch(loadMoreObserverRef, (el) => {
+    if (el) {
+      observer.observe(el)
+    }
+  }, { immediate: true })
+})
+
+onUnmounted(() => {
+  if (observer) {
+    observer.disconnect()
+  }
 })
 </script>
 
@@ -511,6 +564,10 @@ onMounted(async () => {
             </table>
           </div>
         </BaseRoll>
+
+        <div v-if="hasMore && filteredTransactions.length > 0" ref="loadMoreObserverRef" class="flex justify-center pt-2 pb-6">
+          <p class="text-sm font-medium text-slate-500">Memuat lebih banyak...</p>
+        </div>
       </div>
     </div>
   </section>

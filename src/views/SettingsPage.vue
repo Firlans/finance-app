@@ -4,12 +4,14 @@ import { ToggleFeature } from '@packages/components'
 import AccountsSection from './sections/AccountsSection.vue'
 import CategoriesSection from './sections/CategoriesSection.vue'
 import LoansSection from './sections/LoansSection.vue'
+import BudgetsSection from './sections/BudgetsSection.vue'
 
 const activeTab = ref('accounts')
 const tabs = [
   { value: 'accounts', label: 'Akun' },
   { value: 'categories', label: 'Kategori' },
-  { value: 'loans', label: 'Hutang' }
+  { value: 'loans', label: 'Hutang' },
+  { value: 'budgets', label: 'Anggaran (Budget)' }
 ]
 </script>
 
@@ -31,5 +33,6 @@ const tabs = [
     <AccountsSection v-if="activeTab === 'accounts'" />
     <CategoriesSection v-if="activeTab === 'categories'" />
     <LoansSection v-if="activeTab === 'loans'" />
+    <BudgetsSection v-if="activeTab === 'budgets'" />
   </section>
 </template>

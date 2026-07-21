@@ -3,7 +3,7 @@ import { ref, onMounted, shallowRef, nextTick } from 'vue'
 import Chart from 'chart.js/auto'
 import dayjs from 'dayjs'
 // Import DataService yang sudah ada di repo (apps/finance-app/src/DataService.js)
-import { getTransactions, getSummary, getAccounts } from '@/DataService.js'
+import { getTransactions, getSummary, getAccounts, getBudgets } from '@/DataService.js'
 import { ToggleFeature } from '@packages/components'
 
 const transactionType = ref('credit') // Default: credit (Pengeluaran)
@@ -36,6 +36,9 @@ const pieChartCanvas = ref(null)
 const pieChartInstance = shallowRef(null)
 const rawSummaryData = shallowRef([]) 
 const activeCategoryFilters = ref(new Set())
+
+// Budgets State
+const budgetList = shallowRef([])
 
 const categoryColors = [
   '#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', 
@@ -102,26 +105,32 @@ const fetchDataAndRender = async () => {
 
   try {
     let rawTransactions = []
-    let summaryRes = []
     let accountsRes = []
+    let budgetsRes = []
+    let summaryRes = []
+    
     if (fromDate && toDate) {
-      const [txs, sum, accs] = await Promise.all([
+      const [txs, sum, accs, bdgs] = await Promise.all([
         getTransactions(token, fromDate, toDate),
         getSummary(token, transactionType.value, fromDate, toDate),
-        getAccounts(token)
+        getAccounts(token),
+        getBudgets(token)
       ])
       rawTransactions = txs
       summaryRes = sum
       accountsRes = accs
+      budgetList.value = bdgs || []
     } else {
-      const [txs, sum, accs] = await Promise.all([
+      const [txs, sum, accs, bdgs] = await Promise.all([
         getTransactions(token),
         getSummary(token, transactionType.value),
-        getAccounts(token)
+        getAccounts(token),
+        getBudgets(token)
       ])
       rawTransactions = txs
       summaryRes = sum
       accountsRes = accs
+      budgetList.value = bdgs || []
     }
 
     accountsMap.value = accountsRes.reduce((acc, account) => {
@@ -498,6 +507,41 @@ const renderPieChart = () => {
 
     <div class="relative w-full h-[300px]">
       <canvas ref="chartCanvas"></canvas>
+    </div>
+
+    <!-- Budgets Progress Section -->
+    <div v-if="budgetList.length > 0" class="mt-8 border-t border-gray-100 pt-6">
+      <h3 class="text-lg font-semibold text-gray-800 mb-4">
+        Progress Anggaran (Periode Aktif)
+      </h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div v-for="budget in budgetList" :key="budget.id" class="bg-gray-50 border border-gray-100 rounded-xl p-4">
+          <div class="flex justify-between items-start mb-2">
+            <div>
+              <h4 class="font-semibold text-gray-800">{{ budget.name }}</h4>
+              <p class="text-xs text-gray-500">{{ dayjs(budget.current_period_start).format('DD MMM') }} - {{ dayjs(budget.current_period_end).format('DD MMM') }} ({{ budget.interval_days }} Hari)</p>
+            </div>
+            <div class="text-right">
+              <span class="text-sm font-semibold" :class="{ 'text-red-600': budget.total_spent >= budget.amount, 'text-green-600': budget.total_spent < budget.amount * 0.8, 'text-yellow-600': budget.total_spent >= budget.amount * 0.8 && budget.total_spent < budget.amount }">
+                Rp {{ budget.total_spent.toLocaleString('id-ID') }}
+              </span>
+              <span class="text-xs text-gray-500 block">/ Rp {{ budget.amount.toLocaleString('id-ID') }}</span>
+            </div>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+            <div 
+              class="h-2.5 rounded-full transition-all duration-500" 
+              :class="{
+                'bg-red-500': budget.total_spent >= budget.amount,
+                'bg-yellow-400': budget.total_spent >= budget.amount * 0.8 && budget.total_spent < budget.amount,
+                'bg-green-500': budget.total_spent < budget.amount * 0.8
+              }"
+              :style="{ width: `${Math.min(100, (budget.total_spent / budget.amount) * 100)}%` }"
+            ></div>
+          </div>
+          <p class="text-xs text-gray-400 mt-2 text-right">{{ Math.round((budget.total_spent / budget.amount) * 100) }}% Terpakai</p>
+        </div>
+      </div>
     </div>
 
     <!-- Summary by Category Section -->

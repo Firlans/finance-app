@@ -95,13 +95,14 @@ async function deleteAccount(token, id) {
   return json?.data || null
 }
 
-async function getTransactions(token, from = null, to = null) {
+async function getTransactions(token, from = null, to = null, page = null) {
   let url = '/transactions'
   const params = new URLSearchParams()
 
   // Tambahkan parameter jika nilai from/to dikirimkan
   if (from) params.append('from', from)
   if (to) params.append('to', to)
+  if (page) params.append('page', page)
 
   // Gabungkan URL dengan query string jika ada
   const queryString = params.toString()
@@ -275,6 +276,29 @@ async function deletePayment(token, id) {
   return json?.data || null
 }
 
+// ------------------------
+// Budgets
+// ------------------------
+async function getBudgets(token, date = null) {
+  let url = '/budgets/summary'
+  if (date) {
+    url += `?date=${date}`
+  }
+  const json = await request(url, {
+    headers: getAuthHeaders(token, false)
+  })
+  return json?.data || []
+}
+
+async function upsertBudget(token, payload) {
+  const json = await request('/budgets', {
+    method: 'POST',
+    headers: getAuthHeaders(token),
+    body: JSON.stringify(payload)
+  })
+  return json?.data || null
+}
+
 export {
   getCurrentUser,
   refreshToken,
@@ -303,6 +327,10 @@ export {
   getPaymentsByLoan,
   createPayment,
   updatePayment,
-  deletePayment
+  deletePayment,
+
+  // budgets
+  getBudgets,
+  upsertBudget
 }
 
