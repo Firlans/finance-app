@@ -51,7 +51,8 @@ func (r *repository) FindByID(ctx context.Context, id int) (*Account, error) {
 				a.created_at 
 		from accounts a 
 		left join transactions t on a.id = t.account_id
-		where a.id = $1`
+		where a.id = $1
+		group by a.id, a.user_id, a.account_name, a.description, a.balance, a.created_at`
 	row := r.QueryRow(ctx, query, id)
 	var account Account
 	err := row.Scan(&account.ID, &account.UserID, &account.AccountName, &account.Description, &account.Balance, &account.InitialBalance, &account.CreatedAt)

@@ -10,6 +10,7 @@ import (
 
 type Repository interface {
 	UpsertBudget(ctx context.Context, budget *Budget, categoryIDs []int) error
+	DeleteBudget(ctx context.Context, id uuid.UUID, userID uuid.UUID) error
 	GetBudgetSummaries(ctx context.Context, userID uuid.UUID, dateStr string) ([]BudgetSummaryResponse, error)
 }
 
@@ -78,6 +79,11 @@ func (r *repository) UpsertBudget(ctx context.Context, budget *Budget, categoryI
 	}
 
 	return tx.Commit(ctx)
+}
+
+func (r *repository) DeleteBudget(ctx context.Context, id uuid.UUID, userID uuid.UUID) error {
+	_, err := r.db.Exec(ctx, "DELETE FROM budgets WHERE id = $1 AND user_id = $2", id, userID)
+	return err
 }
 
 func snapToEndOfMonth(year int, month time.Month, date int) time.Time {

@@ -10,6 +10,7 @@ import (
 
 type UseCase interface {
 	UpsertBudget(ctx context.Context, userID uuid.UUID, req *CreateBudgetRequest) error
+	DeleteBudget(ctx context.Context, userID uuid.UUID, id uuid.UUID) error
 	GetBudgetSummaries(ctx context.Context, userID uuid.UUID, dateStr string) ([]BudgetSummaryResponse, error)
 }
 
@@ -46,6 +47,10 @@ func (u *useCase) UpsertBudget(ctx context.Context, userID uuid.UUID, req *Creat
 	}
 
 	return u.repo.UpsertBudget(ctx, budget, req.CategoryIDs)
+}
+
+func (u *useCase) DeleteBudget(ctx context.Context, userID uuid.UUID, id uuid.UUID) error {
+	return u.repo.DeleteBudget(ctx, id, userID)
 }
 
 func (u *useCase) GetBudgetSummaries(ctx context.Context, userID uuid.UUID, dateStr string) ([]BudgetSummaryResponse, error) {

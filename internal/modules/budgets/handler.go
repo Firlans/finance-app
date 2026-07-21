@@ -20,6 +20,7 @@ func (h *Handler) RegisterRoutes(app *fiber.App, authMiddleware fiber.Handler, r
 	budgetsGroup := app.Group("/api/budgets", authMiddleware)
 	
 	budgetsGroup.Post("/", h.UpsertBudget)
+	budgetsGroup.Delete("/:id", h.DeleteBudget)
 	budgetsGroup.Get("/summary", h.GetBudgetSummaries)
 }
 
@@ -79,6 +80,59 @@ func (h *Handler) UpsertBudget(c *fiber.Ctx) error {
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message":    "Budget updated successfully",
+		"request_id": c.Locals("request_id"),
+	})
+}
+
+// DeleteBudget godoc
+// @Summary      Delete a budget
+// @Description  Deletes an existing budget for the authenticated user
+// @Tags         Budgets
+// @Produce      json
+// @Param        id path string true "Budget ID (UUID)"
+// @Success      200  {object}  map[string]interface{}
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      401  {object}  map[string]interface{}
+// @Failure      500  {object}  map[string]interface{}
+// @Security     BearerAuth
+// @Router       /budgets/{id} [delete]
+func (h *Handler) DeleteBudget(c *fiber.Ctx) error {
+	userIDStr, ok := c.Locals("user_id").(string)
+	if !ok || userIDStr == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error":      "User ID not found in JWT token",
+			"request_id": c.Locals("request_id"),
+		})
+	}
+	
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error":      "Invalid User ID format",
+			"request_id": c.Locals("request_id"),
+		})
+	}
+
+	idStr := c.Params("id")
+	budgetID, err := uuid.Parse(idStr)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":      "Invalid Budget ID format",
+			"request_id": c.Locals("request_id"),
+		})
+	}
+
+	err = h.useCase.DeleteBudget(c.Context(), userID, budgetID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error":      "Internal Server Error",
+			"details":    err.Error(),
+			"request_id": c.Locals("request_id"),
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message":    "Budget deleted successfully",
 		"request_id": c.Locals("request_id"),
 	})
 }
