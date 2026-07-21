@@ -299,6 +299,14 @@ async function upsertBudget(token, payload) {
   return json?.data || null
 }
 
+async function deleteBudget(token, id) {
+  const json = await request(`/budgets/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(token, false)
+  })
+  return json?.data || null
+}
+
 export {
   getCurrentUser,
   refreshToken,
@@ -331,6 +339,7 @@ export {
 
   // budgets
   getBudgets,
-  upsertBudget
+  upsertBudget,
+  deleteBudget
 }
 

@@ -3,7 +3,7 @@ import { reactive, ref, computed, onMounted, nextTick } from 'vue'
 import BaseInput from '@packages/components/base/BaseInput.vue'
 import { Loading } from '@packages/utils/Loading.js'
 import { Notification } from '@packages/utils/Notification.js'
-import { getBudgets, upsertBudget, getCategories } from '@/DataService.js'
+import { getBudgets, upsertBudget, deleteBudget, getCategories } from '@/DataService.js'
 import dayjs from 'dayjs'
 
 const loading = new Loading()
@@ -183,6 +183,21 @@ const handleSubmit = async (event) => {
   }
 }
 
+const handleDelete = async (id) => {
+  if (!confirm('Apakah Anda yakin ingin menghapus anggaran ini?')) return
+  
+  try {
+    await deleteBudget(token, id)
+    notification.showSuccess('Anggaran berhasil dihapus')
+    if (editingId.value === id) {
+      closeForm()
+    }
+    await loadData()
+  } catch (error) {
+    notification.showError(error?.message || 'Gagal menghapus anggaran')
+  }
+}
+
 onMounted(async () => {
   if (!token) return
   loading.start({ label: 'Memuat data anggaran...' })
@@ -269,7 +284,11 @@ onMounted(async () => {
           </div>
         </div>
 
-        <div class="md:col-span-2 flex flex-col gap-3 sm:flex-row sm:justify-end">
+        <div class="md:col-span-2 flex flex-col gap-3 sm:flex-row sm:justify-end mt-2 pt-2 border-t border-slate-100">
+          <button v-if="editingId" type="button" @click="handleDelete(editingId)"
+            class="w-full sm:mr-auto rounded-xl border border-red-200 text-red-600 px-4 py-3 text-sm font-semibold transition hover:bg-red-50 sm:w-auto">
+            Hapus
+          </button>
           <button type="button" @click="closeForm"
             class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:w-auto">
             Batal
@@ -329,8 +348,10 @@ onMounted(async () => {
                   {{ getCategoryNames(budget.category_ids) }}
                 </td>
                 <td class="px-4 py-4 space-x-2">
-                  <button @click="openEditForm(budget)"
+                  <button @click.stop="openEditForm(budget)"
                     class="rounded-lg bg-slate-200 px-3 py-1 text-sm text-slate-700 transition hover:bg-slate-300">Edit</button>
+                  <button @click.stop="handleDelete(budget.id)"
+                    class="rounded-lg bg-red-100 px-3 py-1 text-sm text-red-600 transition hover:bg-red-200">Hapus</button>
                 </td>
               </tr>
             </tbody>
