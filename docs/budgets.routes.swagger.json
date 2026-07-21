@@ -1,0 +1,321 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Finance App Service - Budgets API",
+    "version": "1.0.0",
+    "description": "OpenAPI documentation for budgets routes only."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "Local development server"
+    }
+  ],
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "details": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateBudgetRequest": {
+        "type": "object",
+        "required": [
+          "name",
+          "amount",
+          "interval_type"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "interval_type": {
+            "type": "string",
+            "example": "monthly"
+          },
+          "day": {
+            "type": "integer",
+            "nullable": true
+          },
+          "date": {
+            "type": "integer",
+            "nullable": true
+          },
+          "month": {
+            "type": "integer",
+            "nullable": true
+          },
+          "repeat": {
+            "type": "boolean"
+          },
+          "category_ids": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "nullable": true
+          }
+        }
+      },
+      "BudgetSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "interval_type": {
+            "type": "string"
+          },
+          "day": {
+            "type": "integer",
+            "nullable": true
+          },
+          "date": {
+            "type": "integer",
+            "nullable": true
+          },
+          "month": {
+            "type": "integer",
+            "nullable": true
+          },
+          "repeat": {
+            "type": "boolean"
+          },
+          "current_period_start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "current_period_end": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "total_spent": {
+            "type": "number",
+            "format": "double"
+          },
+          "category_ids": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "nullable": true
+          }
+        }
+      },
+      "BudgetSummaryListResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BudgetSummaryResponse"
+            }
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "GenericMessageResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/budgets": {
+      "post": {
+        "tags": [
+          "Budgets"
+        ],
+        "summary": "Create or update a budget",
+        "description": "Creates a new budget or updates an existing one for the authenticated user.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBudgetRequest"
+              },
+              "example": {
+                "name": "Groceries",
+                "amount": 500.0,
+                "interval_type": "monthly",
+                "repeat": true,
+                "category_ids": [
+                  1,
+                  2
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Budget updated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericMessageResponse"
+                },
+                "example": {
+                  "message": "Budget updated successfully",
+                  "request_id": "req-123e4567-e89b-12d3-a456-426614174000"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body or validation failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized access.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Send missing required fields returns 400.",
+          "Call without auth returns 401."
+        ]
+      }
+    },
+    "/api/budgets/summary": {
+      "get": {
+        "tags": [
+          "Budgets"
+        ],
+        "summary": "Get budget summaries",
+        "description": "Retrieves budget summaries for the authenticated user for a specific date.",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "2026-05-25"
+            },
+            "description": "Date in YYYY-MM-DD format. Defaults to today."
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Budget summaries returned successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BudgetSummaryListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized access.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-negative-tests": [
+          "Call without Authorization header returns 401.",
+          "Call with invalid token returns 401."
+        ]
+      }
+    }
+  }
+}
