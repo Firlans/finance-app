@@ -5,6 +5,7 @@ import (
 	"github.com/TubagusAldiMY/finance-tracker-app/backend/internal/modules/accounts"
 	"github.com/TubagusAldiMY/finance-tracker-app/backend/internal/modules/budgets"
 	"github.com/TubagusAldiMY/finance-tracker-app/backend/internal/modules/categories"
+	"github.com/TubagusAldiMY/finance-tracker-app/backend/internal/modules/goals"
 	"github.com/TubagusAldiMY/finance-tracker-app/backend/internal/modules/loans"
 	"github.com/TubagusAldiMY/finance-tracker-app/backend/internal/modules/payments"
 	"github.com/TubagusAldiMY/finance-tracker-app/backend/internal/modules/summary"
@@ -35,6 +36,7 @@ func (app *BootstrapConfig) RegisterRoutes() {
 		transactions.NewHandler(transactions.NewUseCase(transactions.NewRepository(app.DB), app.Validate), app.Validate),
 		categories.NewHandler(categories.NewUseCase(categories.NewRepository(app.DB), app.Validate)),
 		budgets.NewHandler(budgets.NewUseCase(budgets.NewRepository(app.DB), app.Validate)),
+		goals.NewHandler(goals.NewUseCase(goals.NewRepository(app.DB), app.Validate)),
 
 		loans.NewHandler(loans.NewUseCase(loans.NewRepository(app.DB), payments.NewRepository(app.DB), transactions.NewRepository(app.DB), app.Validate), app.Validate),
 		payments.NewHandler(payments.NewUseCase(payments.NewRepository(app.DB), transactions.NewRepository(app.DB), app.Validate), app.Validate),
