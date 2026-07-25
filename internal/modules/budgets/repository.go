@@ -232,7 +232,8 @@ func (r *repository) GetBudgetSummaries(ctx context.Context, userID uuid.UUID, d
 				JOIN accounts a ON t.account_id = a.id
 				WHERE a.user_id = $1 AND t.transaction_type = 'credit'
 				AND t.category_id = ANY($2)
-				AND t.transaction_date::DATE >= $3::DATE AND t.transaction_date::DATE <= $4::DATE
+				AND (t.transaction_date AT TIME ZONE 'Asia/Jakarta')::DATE >= ($3 AT TIME ZONE 'UTC')::DATE 
+				AND (t.transaction_date AT TIME ZONE 'Asia/Jakarta')::DATE <= ($4 AT TIME ZONE 'UTC')::DATE
 			`, userID, catIDs, start, end).Scan(&totalSpent)
 		} else {
 			r.db.QueryRow(ctx, `
@@ -240,7 +241,8 @@ func (r *repository) GetBudgetSummaries(ctx context.Context, userID uuid.UUID, d
 				FROM transactions t
 				JOIN accounts a ON t.account_id = a.id
 				WHERE a.user_id = $1 AND t.transaction_type = 'credit'
-				AND t.transaction_date::DATE >= $2::DATE AND t.transaction_date::DATE <= $3::DATE
+				AND (t.transaction_date AT TIME ZONE 'Asia/Jakarta')::DATE >= ($2 AT TIME ZONE 'UTC')::DATE 
+				AND (t.transaction_date AT TIME ZONE 'Asia/Jakarta')::DATE <= ($3 AT TIME ZONE 'UTC')::DATE
 			`, userID, start, end).Scan(&totalSpent)
 		}
 
