@@ -128,7 +128,7 @@ func calculatePeriod(b Budget, target time.Time) (time.Time, time.Time) {
 			}
 		}
 		start := snapToEndOfMonth(year, month, budgetDate)
-		
+
 		endMonth := month + 1
 		endYear := year
 		if endMonth == 13 {
@@ -149,7 +149,7 @@ func calculatePeriod(b Budget, target time.Time) (time.Time, time.Time) {
 		if b.Month != nil {
 			budgetMonth = time.Month(*b.Month)
 		}
-		
+
 		if target.Month() < budgetMonth || (target.Month() == budgetMonth && target.Day() < budgetDate) {
 			year--
 		}
@@ -158,7 +158,7 @@ func calculatePeriod(b Budget, target time.Time) (time.Time, time.Time) {
 		end := endRaw.AddDate(0, 0, -1)
 		return start, end
 	}
-	
+
 	return target, target
 }
 
@@ -183,22 +183,22 @@ func (r *repository) GetBudgetSummaries(ctx context.Context, userID uuid.UUID, d
 	rows.Close()
 
 	var summaries []BudgetSummaryResponse
-	
+
 	// 2. Process each budget
 	for _, b := range budgets {
 		start, end := calculatePeriod(b, targetDate)
-		
+
 		// Check if history exists
 		var histID uuid.UUID
 		var histAmount float64
 		err := r.db.QueryRow(ctx, "SELECT id, amount FROM budget_history WHERE budget_id = $1 AND start_date = $2", b.ID, start).Scan(&histID, &histAmount)
-		
+
 		if err != nil {
 			// Not found, check if we should create it
 			// We create it if it's repeating, OR if it's the very first time (no history exists at all for this budget)
 			var count int
 			r.db.QueryRow(ctx, "SELECT COUNT(*) FROM budget_history WHERE budget_id = $1", b.ID).Scan(&count)
-			
+
 			if b.Repeat || count == 0 {
 				histAmount = b.Amount
 				_, err = r.db.Exec(ctx, "INSERT INTO budget_history (budget_id, amount, start_date, end_date) VALUES ($1, $2, $3, $4)", b.ID, histAmount, start, end)
@@ -224,7 +224,7 @@ func (r *repository) GetBudgetSummaries(ctx context.Context, userID uuid.UUID, d
 
 		// Get total spent
 		var totalSpent float64
-		
+
 		if len(catIDs) > 0 {
 			r.db.QueryRow(ctx, `
 				SELECT COALESCE(SUM(t.amount), 0)
