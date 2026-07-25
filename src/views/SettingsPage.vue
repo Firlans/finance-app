@@ -5,13 +5,15 @@ import AccountsSection from './sections/AccountsSection.vue'
 import CategoriesSection from './sections/CategoriesSection.vue'
 import LoansSection from './sections/LoansSection.vue'
 import BudgetsSection from './sections/BudgetsSection.vue'
+import GoalsSection from './sections/GoalsSection.vue'
 
 const activeTab = ref('accounts')
 const tabs = [
   { value: 'accounts', label: 'Akun' },
   { value: 'categories', label: 'Kategori' },
   { value: 'loans', label: 'Hutang' },
-  { value: 'budgets', label: 'Anggaran (Budget)' }
+  { value: 'budgets', label: 'Budget' },
+  { value: 'goals', label: 'Goals' }
 ]
 </script>
 
@@ -34,5 +36,7 @@ const tabs = [
     <CategoriesSection v-if="activeTab === 'categories'" />
     <LoansSection v-if="activeTab === 'loans'" />
     <BudgetsSection v-if="activeTab === 'budgets'" />
+    <GoalsSection v-if="activeTab === 'goals'" />
   </section>
 </template>
+

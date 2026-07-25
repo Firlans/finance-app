@@ -307,6 +307,42 @@ async function deleteBudget(token, id) {
   return json?.data || null
 }
 
+// ------------------------
+// Goals
+// ------------------------
+async function getGoals(token) {
+  const json = await request('/goals', {
+    headers: getAuthHeaders(token, false)
+  })
+  return json?.data || []
+}
+
+async function createGoal(token, payload) {
+  const json = await request('/goals', {
+    method: 'POST',
+    headers: getAuthHeaders(token),
+    body: JSON.stringify(payload)
+  })
+  return json?.data || null
+}
+
+async function updateGoal(token, id, payload) {
+  const json = await request(`/goals/${id}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(token),
+    body: JSON.stringify(payload)
+  })
+  return json?.data || null
+}
+
+async function deleteGoal(token, id) {
+  const json = await request(`/goals/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(token, false)
+  })
+  return json?.data || null
+}
+
 export {
   getCurrentUser,
   refreshToken,
@@ -340,6 +376,12 @@ export {
   // budgets
   getBudgets,
   upsertBudget,
-  deleteBudget
+  deleteBudget,
+
+  // goals
+  getGoals,
+  createGoal,
+  updateGoal,
+  deleteGoal
 }
 

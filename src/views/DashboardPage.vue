@@ -3,7 +3,7 @@ import { ref, onMounted, shallowRef, nextTick } from 'vue'
 import Chart from 'chart.js/auto'
 import dayjs from 'dayjs'
 // Import DataService yang sudah ada di repo (apps/finance-app/src/DataService.js)
-import { getTransactions, getSummary, getAccounts, getBudgets } from '@/DataService.js'
+import { getTransactions, getSummary, getAccounts, getBudgets, getGoals } from '@/DataService.js'
 import { ToggleFeature } from '@packages/components'
 
 const transactionType = ref('credit') // Default: credit (Pengeluaran)
@@ -39,6 +39,7 @@ const activeCategoryFilters = ref(new Set())
 
 // Budgets State
 const budgetList = shallowRef([])
+const goalList = shallowRef([])
 
 const categoryColors = [
   '#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', 
@@ -110,27 +111,31 @@ const fetchDataAndRender = async () => {
     let summaryRes = []
     
     if (fromDate && toDate) {
-      const [txs, sum, accs, bdgs] = await Promise.all([
+      const [txs, sum, accs, bdgs, gls] = await Promise.all([
         getTransactions(token, fromDate, toDate),
         getSummary(token, transactionType.value, fromDate, toDate),
         getAccounts(token),
-        getBudgets(token)
+        getBudgets(token),
+        getGoals(token)
       ])
       rawTransactions = txs
       summaryRes = sum
       accountsRes = accs
       budgetList.value = bdgs || []
+      goalList.value = gls || []
     } else {
-      const [txs, sum, accs, bdgs] = await Promise.all([
+      const [txs, sum, accs, bdgs, gls] = await Promise.all([
         getTransactions(token),
         getSummary(token, transactionType.value),
         getAccounts(token),
-        getBudgets(token)
+        getBudgets(token),
+        getGoals(token)
       ])
       rawTransactions = txs
       summaryRes = sum
       accountsRes = accs
       budgetList.value = bdgs || []
+      goalList.value = gls || []
     }
 
     accountsMap.value = accountsRes.reduce((acc, account) => {
@@ -540,6 +545,39 @@ const renderPieChart = () => {
             ></div>
           </div>
           <p class="text-xs text-gray-400 mt-2 text-right">{{ Math.round((budget.total_spent / budget.amount) * 100) }}% Terpakai</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Goals Progress Section -->
+    <div v-if="goalList.length > 0" class="mt-8 border-t border-gray-100 pt-6">
+      <h3 class="text-lg font-semibold text-gray-800 mb-4">
+        Progress Goals Tabungan
+      </h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div v-for="goal in goalList" :key="goal.id" class="bg-gray-50 border border-gray-100 rounded-xl p-4">
+          <div class="flex justify-between items-start mb-2">
+            <div>
+              <h4 class="font-semibold text-gray-800">
+                {{ goal.name }}
+                <span v-if="goal.is_completed" class="ml-2 text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full">✓ Tercapai</span>
+              </h4>
+            </div>
+            <div class="text-right">
+              <span class="text-sm font-semibold" :class="goal.is_completed ? 'text-green-600' : 'text-blue-600'">
+                Rp {{ goal.current_amount.toLocaleString('id-ID') }}
+              </span>
+              <span class="text-xs text-gray-500 block">/ Rp {{ goal.target_amount.toLocaleString('id-ID') }}</span>
+            </div>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+            <div
+              class="h-2.5 rounded-full transition-all duration-500"
+              :class="goal.is_completed ? 'bg-green-500' : 'bg-gradient-to-r from-emerald-400 to-blue-500'"
+              :style="{ width: `${Math.min(100, (goal.current_amount / goal.target_amount) * 100)}%` }"
+            ></div>
+          </div>
+          <p class="text-xs text-gray-400 mt-2 text-right">{{ Math.round((goal.current_amount / goal.target_amount) * 100) }}% Terkumpul</p>
         </div>
       </div>
     </div>
