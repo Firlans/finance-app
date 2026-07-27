@@ -1,0 +1,2 @@
+-- Down migration does nothing because we are just correcting data.
+-- If needed, revert logic to whatever it was before.
