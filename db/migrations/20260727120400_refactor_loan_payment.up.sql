@@ -6,7 +6,12 @@ ALTER TABLE payments ADD COLUMN type VARCHAR(20);
 -- Migrate existing data
 UPDATE payments 
 SET amount = (SELECT amount FROM transactions WHERE transactions.id = payments.transaction_id),
-    type = CASE WHEN (SELECT transaction_type FROM transactions WHERE transactions.id = payments.transaction_id) = 'debit' THEN 'increase' ELSE 'decrease' END,
+    type = CASE 
+        WHEN (SELECT loan_type FROM loans WHERE id = payments.loan_id) = 'debt' THEN
+            CASE WHEN (SELECT transaction_type FROM transactions WHERE transactions.id = payments.transaction_id) = 'debit' THEN 'increase' ELSE 'decrease' END
+        WHEN (SELECT loan_type FROM loans WHERE id = payments.loan_id) = 'receivable' THEN
+            CASE WHEN (SELECT transaction_type FROM transactions WHERE transactions.id = payments.transaction_id) = 'credit' THEN 'increase' ELSE 'decrease' END
+    END,
     payment_date = (SELECT transaction_date FROM transactions WHERE transactions.id = payments.transaction_id)
 WHERE transaction_id IS NOT NULL;
 
