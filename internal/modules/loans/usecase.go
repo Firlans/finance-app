@@ -58,14 +58,14 @@ func (uc *useCase) Save(ctx context.Context, loan *CreateLoanRequest) (int, erro
 		PaymentDate: now,
 	}
 
+	var transactionType string
 	if loan.AccountID != nil && *loan.AccountID > 0 {
-		transactionType := "credit"
+		transactionType = "credit"
 		if loan.LoanType == "debt" {
 			transactionType = "debit"
 		}
 		
 		payment.Transaction = &payments.TransactionInput{
-			TransactionType: transactionType,
 			Description:     fmt.Sprintf("Loan creation: %s", loan.Name),
 			AccountID:       *loan.AccountID,
 		}
@@ -78,7 +78,7 @@ func (uc *useCase) Save(ctx context.Context, loan *CreateLoanRequest) (int, erro
 	if payment.Transaction != nil {
 		txn := &transactions.Transaction{
 			Amount:          payment.Amount,
-			TransactionType: payment.Transaction.TransactionType,
+			TransactionType: transactionType,
 			Description:     payment.Transaction.Description,
 			AccountID:       payment.Transaction.AccountID,
 			CategoryID:      payment.Transaction.CategoryID,
