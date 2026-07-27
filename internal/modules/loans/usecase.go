@@ -49,44 +49,53 @@ func (uc *useCase) Save(ctx context.Context, loan *CreateLoanRequest) (int, erro
 		return 0, err
 	}
 
-	if loan.AccountID > 0 {
+	now := time.Now().UTC()
+
+	payment := &payments.CreatePaymentRequest{
+		LoanID:      loan.ID,
+		Amount:      loan.Amount,
+		Type:        "increase",
+		PaymentDate: now,
+	}
+
+	if loan.AccountID != nil && *loan.AccountID > 0 {
 		transactionType := "credit"
 		if loan.LoanType == "debt" {
 			transactionType = "debit"
 		}
-
-		txn := &transactions.Transaction{
-			Amount:          loan.Balance,
+		
+		payment.Transaction = &payments.TransactionInput{
 			TransactionType: transactionType,
-			Description:     fmt.Sprintf("Loan payment for %s", loan.Name),
-			AccountID:       loan.AccountID,
-			CategoryID:      nil,
+			Description:     fmt.Sprintf("Loan creation: %s", loan.Name),
+			AccountID:       *loan.AccountID,
+		}
+	}
+
+	// use paymentRepo.SavePayment (which now might not create the transaction, so we need to either create it here or let payment usecase do it)
+	// Actually, wait, paymentRepo.SavePayment just saves the payment in DB. It doesn't create the transaction!
+	// So we DO need to create the transaction here if we are just calling paymentRepo.SavePayment!
+
+	if payment.Transaction != nil {
+		txn := &transactions.Transaction{
+			Amount:          payment.Amount,
+			TransactionType: payment.Transaction.TransactionType,
+			Description:     payment.Transaction.Description,
+			AccountID:       payment.Transaction.AccountID,
+			CategoryID:      payment.Transaction.CategoryID,
 			UserID:          loan.UserID,
-			CreatedAt:       time.Now().UTC(),
-			UpdatedAt:       time.Now().UTC(),
+			CreatedAt:       now,
+			UpdatedAt:       now,
 		}
 
 		if err := uc.transactionRepo.Save(ctx, txn); err != nil {
 			return 0, err
 		}
 
-		payment := &payments.CreatePaymentRequest{
-			TransactionID: &txn.ID,
-			LoanID:        loan.ID,
-		}
+		payment.TransactionID = &txn.ID
+	}
 
-		if err := uc.paymentRepo.SavePayment(ctx, payment); err != nil {
-			return 0, err
-		}
-	} else {
-		placeholderPayment := &payments.CreatePaymentRequest{
-			TransactionID: nil,
-			LoanID:        loan.ID,
-		}
-
-		if err := uc.paymentRepo.SavePayment(ctx, placeholderPayment); err != nil {
-			return 0, err
-		}
+	if err := uc.paymentRepo.SavePayment(ctx, payment); err != nil {
+		return 0, err
 	}
 
 	return loan.ID, nil
@@ -121,133 +130,7 @@ func (uc *useCase) Update(ctx context.Context, id int, loan *UpdateLoanRequest) 
 	if err := uc.loanRepo.UpdateLoan(ctx, id, loan); err != nil {
 		return err
 	}
-	if loan.AccountID == nil {
-		return nil
-	}
-
-	existingLoan, err := uc.loanRepo.FindLoanByID(ctx, id)
-	if err != nil {
-		return err
-	}
-	if existingLoan == nil {
-		return errors.New("loan not found")
-	}
-
-	payment, err := uc.paymentRepo.FindFirstPaymentByLoanID(ctx, id)
-	if err != nil {
-		return err
-	}
-
-	if payment == nil {
-		amount := existingLoan.Balance
-		if loan.Balance != nil {
-			amount = *loan.Balance
-		}
-
-		transactionType := "credit"
-		loanType := existingLoan.LoanType
-		if loan.LoanType != nil {
-			loanType = *loan.LoanType
-		}
-		if loanType == "debt" {
-			transactionType = "debit"
-		}
-
-		txn := &transactions.Transaction{
-			Amount:          amount,
-			TransactionType: transactionType,
-			Description:     fmt.Sprintf("Loan payment for %s", existingLoan.Name),
-			AccountID:       *loan.AccountID,
-			CategoryID:      nil,
-			UserID:          existingLoan.UserID,
-			CreatedAt:       time.Now().UTC(),
-			UpdatedAt:       time.Now().UTC(),
-		}
-
-		if err := uc.transactionRepo.Save(ctx, txn); err != nil {
-			return err
-		}
-
-		createPayment := &payments.CreatePaymentRequest{
-			TransactionID: &txn.ID,
-			LoanID:        id,
-		}
-
-		return uc.paymentRepo.SavePayment(ctx, createPayment)
-	}
-
-	if payment.TransactionID == nil {
-
-		amount := existingLoan.Balance
-		if loan.Balance != nil {
-			amount = *loan.Balance
-		}
-
-		transactionType := "credit"
-		loanType := existingLoan.LoanType
-		if loan.LoanType != nil {
-			loanType = *loan.LoanType
-		}
-		if loanType == "debt" {
-			transactionType = "debit"
-		}
-
-		txn := &transactions.Transaction{
-			Amount:          amount,
-			TransactionType: transactionType,
-			Description:     fmt.Sprintf("Loan payment for %s", existingLoan.Name),
-			AccountID:       *loan.AccountID,
-			CategoryID:      nil,
-			UserID:          existingLoan.UserID,
-			CreatedAt:       time.Now().UTC(),
-			UpdatedAt:       time.Now().UTC(),
-		}
-
-		if err := uc.transactionRepo.Save(ctx, txn); err != nil {
-			return err
-		}
-
-		payment.TransactionID = &txn.ID
-		return uc.paymentRepo.UpdatePayment(ctx, payment)
-
-	}
-
-	txn, err := uc.transactionRepo.GetTransactionByID(ctx, *payment.TransactionID)
-
-	if err != nil {
-		return err
-	}
-	if txn == nil {
-		return errors.New("associated transaction not found")
-	}
-
-	loanType := existingLoan.LoanType
-	if loan.LoanType != nil {
-		loanType = *loan.LoanType
-	}
-	transactionType := "credit"
-	if loanType == "debt" {
-		transactionType = "debit"
-	}
-
-	if loan.Balance != nil {
-		txn.Amount = *loan.Balance
-	}
-
-	if loan.Name != nil {
-		txn.Description = fmt.Sprintf("Loan payment for %s", *loan.Name)
-	}
-
-	txn.TransactionType = transactionType
-	txn.AccountID = *loan.AccountID
-	txn.CategoryID = nil
-	txn.UpdatedAt = time.Now().UTC()
-
-	if err := uc.transactionRepo.UpdateTransaction(ctx, txn); err != nil {
-		return err
-	}
-
-	return uc.paymentRepo.UpdatePayment(ctx, payment)
+	return nil
 }
 
 func (uc *useCase) Delete(ctx context.Context, id int) error {

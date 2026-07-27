@@ -42,12 +42,12 @@ func (uc *useCase) Save(ctx context.Context, payment *CreatePaymentRequest) (int
 
 	if payment.Transaction != nil {
 		txn := &transactions.Transaction{
-			Amount:          payment.Transaction.Amount,
+			Amount:          payment.Amount,
 			TransactionType: payment.Transaction.TransactionType,
 			Description:     payment.Transaction.Description,
 			AccountID:       payment.Transaction.AccountID,
 			CategoryID:      payment.Transaction.CategoryID,
-			TransactionDate: payment.Transaction.TransactionDate,
+			TransactionDate: payment.PaymentDate,
 			CreatedAt:       time.Now().UTC(),
 			UpdatedAt:       time.Now().UTC(),
 		}
@@ -84,8 +84,14 @@ func (uc *useCase) Update(ctx context.Context, id int, payment *UpdatePaymentReq
 		return errors.New("payment not found")
 	}
 
-	if payment.LoanID != nil {
-		existingPayment.LoanID = *payment.LoanID
+	if payment.Amount != nil {
+		existingPayment.Amount = *payment.Amount
+	}
+	if payment.Type != nil {
+		existingPayment.Type = *payment.Type
+	}
+	if payment.PaymentDate != nil {
+		existingPayment.PaymentDate = *payment.PaymentDate
 	}
 
 	if payment.Transaction != nil {
@@ -94,12 +100,12 @@ func (uc *useCase) Update(ctx context.Context, id int, payment *UpdatePaymentReq
 		if existingPayment.TransactionID == nil {
 
 			txn = &transactions.Transaction{
-				Amount:          payment.Transaction.Amount,
+				Amount:          existingPayment.Amount,
 				TransactionType: payment.Transaction.TransactionType,
 				Description:     payment.Transaction.Description,
 				AccountID:       payment.Transaction.AccountID,
 				CategoryID:      payment.Transaction.CategoryID,
-				TransactionDate: payment.Transaction.TransactionDate,
+				TransactionDate: existingPayment.PaymentDate,
 				CreatedAt:       time.Now().UTC(),
 				UpdatedAt:       time.Now().UTC(),
 			}
@@ -120,12 +126,12 @@ func (uc *useCase) Update(ctx context.Context, id int, payment *UpdatePaymentReq
 				return errors.New("associated transaction not found")
 			}
 
-			txn.Amount = payment.Transaction.Amount
+			txn.Amount = existingPayment.Amount
 			txn.TransactionType = payment.Transaction.TransactionType
 			txn.Description = payment.Transaction.Description
 			txn.AccountID = payment.Transaction.AccountID
 			txn.CategoryID = payment.Transaction.CategoryID
-			txn.TransactionDate = payment.Transaction.TransactionDate
+			txn.TransactionDate = existingPayment.PaymentDate
 			txn.UpdatedAt = time.Now().UTC()
 
 			if err := uc.transactionRepo.UpdateTransaction(ctx, txn); err != nil {

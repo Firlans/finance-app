@@ -26,8 +26,8 @@ func NewRepository(db *pgxpool.Pool) Repository {
 
 // SavePayment creates a new payment record
 func (r *repository) SavePayment(ctx context.Context, payment *CreatePaymentRequest) error {
-	query := `INSERT INTO payments (transaction_id, loan_id, created_at, updated_at)
-	VALUES ($1, $2, NOW(), NOW()) RETURNING id`
+	query := `INSERT INTO payments (transaction_id, loan_id, amount, payment_date, type, created_at, updated_at)
+	VALUES ($1, $2, $3, $4, $5, NOW(), NOW()) RETURNING id`
 
 	var transactionID interface{}
 	if payment.TransactionID != nil {
@@ -35,7 +35,7 @@ func (r *repository) SavePayment(ctx context.Context, payment *CreatePaymentRequ
 	}
 
 	var id int64
-	err := r.QueryRow(ctx, query, transactionID, payment.LoanID).Scan(&id)
+	err := r.QueryRow(ctx, query, transactionID, payment.LoanID, payment.Amount, payment.PaymentDate, payment.Type).Scan(&id)
 
 	if err != nil {
 		return err
@@ -47,11 +47,11 @@ func (r *repository) SavePayment(ctx context.Context, payment *CreatePaymentRequ
 
 // FindPaymentByID retrieves a payment by its ID
 func (r *repository) FindPaymentByID(ctx context.Context, id int) (*Payment, error) {
-	query := `SELECT id, transaction_id, loan_id, created_at, updated_at FROM payments WHERE id = $1`
+	query := `SELECT id, transaction_id, loan_id, COALESCE(amount, 0), COALESCE(payment_date, created_at), COALESCE(type, 'decrease'), created_at, updated_at FROM payments WHERE id = $1`
 	row := r.QueryRow(ctx, query, id)
 
 	var payment Payment
-	err := row.Scan(&payment.ID, &payment.TransactionID, &payment.LoanID, &payment.CreatedAt, &payment.UpdatedAt)
+	err := row.Scan(&payment.ID, &payment.TransactionID, &payment.LoanID, &payment.Amount, &payment.PaymentDate, &payment.Type, &payment.CreatedAt, &payment.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -63,7 +63,7 @@ func (r *repository) FindPaymentByID(ctx context.Context, id int) (*Payment, err
 
 // FindPaymentsByLoanID retrieves all payments for a specific loan
 func (r *repository) FindPaymentsByLoanID(ctx context.Context, loanID int) (*[]Payment, error) {
-	query := `SELECT id, transaction_id, loan_id, created_at, updated_at FROM payments WHERE loan_id = $1 ORDER BY created_at DESC`
+	query := `SELECT id, transaction_id, loan_id, COALESCE(amount, 0), COALESCE(payment_date, created_at), COALESCE(type, 'decrease'), created_at, updated_at FROM payments WHERE loan_id = $1 ORDER BY created_at DESC`
 	payments := make([]Payment, 0)
 	rows, err := r.Query(ctx, query, loanID)
 	if err != nil {
@@ -73,7 +73,7 @@ func (r *repository) FindPaymentsByLoanID(ctx context.Context, loanID int) (*[]P
 
 	for rows.Next() {
 		var payment Payment
-		err := rows.Scan(&payment.ID, &payment.TransactionID, &payment.LoanID, &payment.CreatedAt, &payment.UpdatedAt)
+		err := rows.Scan(&payment.ID, &payment.TransactionID, &payment.LoanID, &payment.Amount, &payment.PaymentDate, &payment.Type, &payment.CreatedAt, &payment.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -88,7 +88,7 @@ func (r *repository) FindPaymentsByLoanID(ctx context.Context, loanID int) (*[]P
 
 // FindPaymentsByTransactionID retrieves all payments for a specific transaction
 func (r *repository) FindPaymentsByTransactionID(ctx context.Context, transactionID int) (*[]Payment, error) {
-	query := `SELECT id, transaction_id, loan_id, created_at, updated_at FROM payments WHERE transaction_id = $1 ORDER BY created_at DESC`
+	query := `SELECT id, transaction_id, loan_id, COALESCE(amount, 0), COALESCE(payment_date, created_at), COALESCE(type, 'decrease'), created_at, updated_at FROM payments WHERE transaction_id = $1 ORDER BY created_at DESC`
 	payments := make([]Payment, 0)
 	rows, err := r.Query(ctx, query, transactionID)
 	if err != nil {
@@ -98,7 +98,7 @@ func (r *repository) FindPaymentsByTransactionID(ctx context.Context, transactio
 
 	for rows.Next() {
 		var payment Payment
-		err := rows.Scan(&payment.ID, &payment.TransactionID, &payment.LoanID, &payment.CreatedAt, &payment.UpdatedAt)
+		err := rows.Scan(&payment.ID, &payment.TransactionID, &payment.LoanID, &payment.Amount, &payment.PaymentDate, &payment.Type, &payment.CreatedAt, &payment.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -111,13 +111,12 @@ func (r *repository) FindPaymentsByTransactionID(ctx context.Context, transactio
 	return &payments, nil
 }
 
-// DeletePayment deletes a payment by its ID
 func (r *repository) FindFirstPaymentByLoanID(ctx context.Context, loanID int) (*Payment, error) {
-	query := `SELECT id, transaction_id, loan_id, created_at, updated_at FROM payments WHERE loan_id = $1 ORDER BY id ASC LIMIT 1`
+	query := `SELECT id, transaction_id, loan_id, COALESCE(amount, 0), COALESCE(payment_date, created_at), COALESCE(type, 'decrease'), created_at, updated_at FROM payments WHERE loan_id = $1 ORDER BY id ASC LIMIT 1`
 	row := r.QueryRow(ctx, query, loanID)
 
 	var payment Payment
-	err := row.Scan(&payment.ID, &payment.TransactionID, &payment.LoanID, &payment.CreatedAt, &payment.UpdatedAt)
+	err := row.Scan(&payment.ID, &payment.TransactionID, &payment.LoanID, &payment.Amount, &payment.PaymentDate, &payment.Type, &payment.CreatedAt, &payment.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -129,14 +128,14 @@ func (r *repository) FindFirstPaymentByLoanID(ctx context.Context, loanID int) (
 }
 
 func (r *repository) UpdatePayment(ctx context.Context, payment *Payment) error {
-	query := `UPDATE payments SET transaction_id = $1, loan_id = $2, updated_at = NOW() WHERE id = $3`
+	query := `UPDATE payments SET transaction_id = $1, loan_id = $2, amount = $3, payment_date = $4, type = $5, updated_at = NOW() WHERE id = $6`
 
 	var transactionID interface{}
 	if payment.TransactionID != nil {
 		transactionID = *payment.TransactionID
 	}
 
-	_, err := r.Exec(ctx, query, transactionID, payment.LoanID, payment.ID)
+	_, err := r.Exec(ctx, query, transactionID, payment.LoanID, payment.Amount, payment.PaymentDate, payment.Type, payment.ID)
 	return err
 
 }

@@ -644,7 +644,7 @@
                       "id": 1,
                       "user_id": "550e8400-e29b-41d4-a716-446655440000",
                       "name": "Car loan",
-                      "balance": 2500.75,
+                      "outstanding_amount": 2500.75,
                       "loan_type": "debt",
                       "created_at": "2026-06-10T12:00:00Z",
                       "updated_at": "2026-06-10T12:00:00Z"
@@ -704,7 +704,7 @@
               },
               "example": {
                 "name": "Car loan",
-                "balance": 2500.75,
+                "amount": 2500.75,
                 "loan_type": "debt",
                 "account_id": 15
               }

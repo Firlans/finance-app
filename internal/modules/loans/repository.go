@@ -24,11 +24,11 @@ func NewRepository(db *pgxpool.Pool) Repository {
 
 // SaveLoan creates a new loan
 func (r *repository) SaveLoan(ctx context.Context, loan *CreateLoanRequest) error {
-	query := `INSERT INTO loans (user_id, name, balance, loan_type, created_at, updated_at)
-	VALUES ($1, $2, $3, $4, NOW(), NOW()) RETURNING id`
+	query := `INSERT INTO loans (user_id, name, loan_type, created_at, updated_at)
+	VALUES ($1, $2, $3, NOW(), NOW()) RETURNING id`
 
 	var id int64
-	err := r.QueryRow(ctx, query, loan.UserID, loan.Name, loan.Balance, loan.LoanType).Scan(&id)
+	err := r.QueryRow(ctx, query, loan.UserID, loan.Name, loan.LoanType).Scan(&id)
 	if err != nil {
 		return err
 	}
@@ -39,11 +39,23 @@ func (r *repository) SaveLoan(ctx context.Context, loan *CreateLoanRequest) erro
 
 // FindLoanByID retrieves a loan by its ID
 func (r *repository) FindLoanByID(ctx context.Context, id int) (*Loan, error) {
-	query := `SELECT id, user_id, name, balance, loan_type, created_at, updated_at FROM loans WHERE id = $1`
+	query := `
+		SELECT 
+			loans.id, 
+			loans.user_id, 
+			loans.name, 
+			loans.loan_type,
+			COALESCE(SUM(CASE WHEN payments.type = 'increase' THEN payments.amount ELSE 0 END), 0) - COALESCE(SUM(CASE WHEN payments.type = 'decrease' THEN payments.amount ELSE 0 END), 0) as outstanding_amount,
+			loans.created_at, 
+			loans.updated_at
+		FROM loans 
+		LEFT JOIN payments ON loans.id = payments.loan_id
+		WHERE loans.id = $1
+		GROUP BY loans.id`
 	row := r.QueryRow(ctx, query, id)
 
 	var loan Loan
-	err := row.Scan(&loan.ID, &loan.UserID, &loan.Name, &loan.Balance, &loan.LoanType, &loan.CreatedAt, &loan.UpdatedAt)
+	err := row.Scan(&loan.ID, &loan.UserID, &loan.Name, &loan.LoanType, &loan.OutstandingAmount, &loan.CreatedAt, &loan.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -56,34 +68,16 @@ func (r *repository) FindLoansByUserID(ctx context.Context, userID string) (*[]L
 				loans.id, 
 				loans.user_id, 
 				loans.name, 
-				loans.balance, 
 				loans.loan_type,
-				loans.balance - coalesce(sum(
-					case
-						-- Untuk debt: debit menambah outstanding, credit mengurangi
-						when loans.loan_type = 'debt' and transactions.transaction_type = 'debit' then transactions.amount
-						when loans.loan_type = 'debt' and transactions.transaction_type = 'credit' then -transactions.amount
-
-						-- Untuk receivable: outstanding berkurang saat payment
-						-- sehingga debit harus mengurangi (minus) dan credit menambah
-						when loans.loan_type = 'receivable' and transactions.transaction_type = 'debit' then -transactions.amount
-						when loans.loan_type = 'receivable' and transactions.transaction_type = 'credit' then transactions.amount
-						else 0
-					end
-
-				), 0) as outstanding_amount,
+				COALESCE(SUM(CASE WHEN payments.type = 'increase' THEN payments.amount ELSE 0 END), 0) - COALESCE(SUM(CASE WHEN payments.type = 'decrease' THEN payments.amount ELSE 0 END), 0) as outstanding_amount,
 				loans.created_at, 
 				loans.updated_at 
 			FROM loans
 			LEFT JOIN payments ON loans.id = payments.loan_id
-			LEFT JOIN transactions ON payments.transaction_id = transactions.id
-				AND payments.id <> (
-					SELECT MIN(p2.id) FROM payments p2 WHERE p2.loan_id = loans.id
-				)
 			WHERE loans.user_id = $1 
 			GROUP BY loans.id
-			ORDER BY created_at DESC`
-	loans := make([]Loan, 0)
+			ORDER BY loans.created_at DESC`
+	loansList := make([]Loan, 0)
 	rows, err := r.Query(ctx, query, userID)
 	if err != nil {
 		return nil, err
@@ -92,23 +86,23 @@ func (r *repository) FindLoansByUserID(ctx context.Context, userID string) (*[]L
 
 	for rows.Next() {
 		var loan Loan
-		err := rows.Scan(&loan.ID, &loan.UserID, &loan.Name, &loan.Balance, &loan.LoanType, &loan.OutstandingAmount, &loan.CreatedAt, &loan.UpdatedAt)
+		err := rows.Scan(&loan.ID, &loan.UserID, &loan.Name, &loan.LoanType, &loan.OutstandingAmount, &loan.CreatedAt, &loan.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
-		loans = append(loans, loan)
+		loansList = append(loansList, loan)
 	}
 
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
-	return &loans, nil
+	return &loansList, nil
 }
 
 // UpdateLoan updates an existing loan
 func (r *repository) UpdateLoan(ctx context.Context, id int, loan *UpdateLoanRequest) error {
-	query := `UPDATE loans SET name = COALESCE($1, name), balance = COALESCE($2, balance), loan_type = COALESCE($3, loan_type), updated_at = NOW() WHERE id = $4`
-	_, err := r.Exec(ctx, query, loan.Name, loan.Balance, loan.LoanType, id)
+	query := `UPDATE loans SET name = COALESCE($1, name), loan_type = COALESCE($2, loan_type), updated_at = NOW() WHERE id = $3`
+	_, err := r.Exec(ctx, query, loan.Name, loan.LoanType, id)
 	if err != nil {
 		return err
 	}
