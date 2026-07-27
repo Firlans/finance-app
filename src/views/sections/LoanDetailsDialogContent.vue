@@ -101,7 +101,6 @@ const submitAddPayment = async () => {
 
     if (form.account_id) {
       payload.transaction = {
-        transaction_type: form.type === 'decrease' ? 'credit' : 'debit',
         ...(form.description.trim() ? { description: form.description.trim() } : {}),
         account_id: Number(form.account_id),
         ...(form.category_id ? { category_id: Number(form.category_id) } : {})
