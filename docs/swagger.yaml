@@ -1,0 +1,405 @@
+basePath: /api
+definitions:
+  budgets.CreateBudgetRequest:
+    properties:
+      amount:
+        type: number
+      category_ids:
+        items:
+          type: integer
+        type: array
+      date:
+        type: integer
+      day:
+        type: integer
+      id:
+        type: string
+      interval_type:
+        type: string
+      month:
+        type: integer
+      name:
+        type: string
+      repeat:
+        type: boolean
+    required:
+    - amount
+    - interval_type
+    - name
+    type: object
+  summary.TransactionCategoryBalance:
+    properties:
+      balance:
+        type: number
+      category_name:
+        type: string
+    type: object
+  summary.TransactionCategoryBalanceListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/summary.TransactionCategoryBalance'
+        type: array
+      message:
+        type: string
+      request_id:
+        type: string
+    type: object
+  user.LoginRequest:
+    properties:
+      email:
+        example: tubagus@example.com
+        type: string
+      password:
+        example: RahasiaNegara123!
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  user.LoginResponse:
+    properties:
+      access_token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+      token_type:
+        example: Bearer
+        type: string
+      user:
+        $ref: '#/definitions/user.UserResponse'
+    type: object
+  user.RegisterRequest:
+    properties:
+      email:
+        example: tubagus@example.com
+        type: string
+      password:
+        example: RahasiaNegara123!
+        minLength: 6
+        type: string
+      username:
+        example: tubagus_aldi
+        maxLength: 30
+        minLength: 3
+        type: string
+    required:
+    - email
+    - password
+    - username
+    type: object
+  user.RegisterResponse:
+    properties:
+      created_at:
+        example: "2025-01-01T15:00:00Z"
+        type: string
+      email:
+        example: tubagus@example.com
+        type: string
+      id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      username:
+        example: tubagus_aldi
+        type: string
+    type: object
+  user.UserResponse:
+    properties:
+      created_at:
+        example: "2025-01-01T15:00:00Z"
+        type: string
+      email:
+        example: tubagus@example.com
+        type: string
+      id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      username:
+        example: tubagus_aldi
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: admin@tubsamy.tech
+    name: Tubagus Aldi
+  description: API Documentation for Finance Tracker App.
+  termsOfService: http://swagger.io/terms/
+  title: Finance Tracker API
+  version: "1.0"
+paths:
+  /budgets:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new budget or updates an existing one for the authenticated
+        user
+      parameters:
+      - description: Budget Payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/budgets.CreateBudgetRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create or update a budget
+      tags:
+      - Budgets
+  /budgets/summary:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves budget summaries for the authenticated user for a specific
+        date
+      parameters:
+      - description: Date in YYYY-MM-DD format. Defaults to today.
+        in: query
+        name: date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get budget summaries
+      tags:
+      - Budgets
+  /summary:
+    get:
+      consumes:
+      - application/json
+      description: Get transactions summary by module (debit/credit) and date range
+      parameters:
+      - description: Module (debit/credit)
+        enum:
+        - debit
+        - credit
+        in: query
+        name: module
+        required: true
+        type: string
+      - description: Start date (YYYY-MM-DD)
+        in: query
+        name: from
+        required: true
+        type: string
+      - description: End date (YYYY-MM-DD)
+        in: query
+        name: to
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/summary.TransactionCategoryBalanceListResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get transactions summary
+      tags:
+      - Summary
+  /users/current:
+    get:
+      consumes:
+      - application/json
+      description: Get currently logged in user profile based on JWT Token
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/user.UserResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get Current User Profile
+      tags:
+      - User
+  /users/login:
+    post:
+      consumes:
+      - application/json
+      description: Login and get JWT Token
+      parameters:
+      - description: Login Payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/user.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/user.LoginResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Login User
+      tags:
+      - User
+  /users/logout:
+    post:
+      consumes:
+      - application/json
+      description: Invalidate current session by blacklisting token
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Logout successful'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 'error: Unauthorized'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Logout User
+      tags:
+      - User
+  /users/refresh-token:
+    post:
+      consumes:
+      - application/json
+      description: Issue a new access token using the current valid token. Old token
+        is invalidated.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/user.LoginResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Refresh Access Token
+      tags:
+      - User
+  /users/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user account
+      parameters:
+      - description: Register Payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/user.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/user.RegisterResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Register new user
+      tags:
+      - User
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
