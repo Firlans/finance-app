@@ -80,7 +80,7 @@ const onPaymentAdded = async () => {
 
 const form = reactive({
   name: '',
-  balance: '',
+  amount: '',
   loan_type: 'debt',
   account_id: ''
 })
@@ -101,7 +101,7 @@ const submitLabel = computed(() => (editingId.value ? 'Simpan Perubahan' : 'Tamb
 
 const resetForm = () => {
   form.name = ''
-  form.balance = ''
+  form.amount = ''
   form.loan_type = 'debt'
   form.account_id = ''
   editingId.value = null
@@ -120,7 +120,7 @@ const openNewForm = async () => {
 
 const openEditForm = async (loan) => {
   form.name = loan?.name || ''
-  form.balance = loan?.balance != null ? String(loan.balance) : ''
+  form.amount = ''
   form.loan_type = loan?.loan_type || 'debt'
   form.account_id = loan?.account_id != null ? String(loan.account_id) : ''
   editingId.value = loan?.id
@@ -159,9 +159,12 @@ const handleSubmit = async (event) => {
 
   const payload = {
     name: form.name.trim(),
-    balance: Number(form.balance),
     loan_type: form.loan_type,
     ...(form.account_id ? { account_id: Number(form.account_id) } : {})
+  }
+  
+  if (!editingId.value) {
+    payload.amount = Number(form.amount)
   }
 
   try {
@@ -260,12 +263,13 @@ onMounted(async () => {
           />
 
           <BaseInput
-            v-model="form.balance"
-            label="Balance"
+            v-if="!editingId"
+            v-model="form.amount"
+            label="Jumlah Awal"
             type="number"
             placeholder="0"
             required
-            :validate="['Balance harus angka positif', numericBalance]"
+            :validate="['Jumlah harus angka positif', numericBalance]"
           />
 
           <div class="md:col-span-2">
@@ -336,7 +340,7 @@ onMounted(async () => {
                   <p class="text-xs text-slate-500 mt-0.5">Tipe: {{ loan.loan_type === 'debt' ? 'Debt' : 'Receivable' }}</p>
                 </div>
                 <div class="text-right shrink-0">
-                  <p class="font-semibold text-sm text-slate-900">{{ formatCurrency(loan.outstanding_amount ?? loan.balance) }}</p>
+                  <p class="font-semibold text-sm text-slate-900">{{ formatCurrency(loan.outstanding_amount) }}</p>
                   <span
                     class="rounded-full px-2 py-0.5 text-[11px] font-semibold"
                     :class="loan.loan_type === 'debt' ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'"
@@ -362,8 +366,7 @@ onMounted(async () => {
               <thead>
                 <tr class="text-sm text-slate-500">
                   <th class="px-4 py-3">Nama</th>
-                  <th class="px-4 py-3">Balance</th>
-                  <th class="px-4 py-3">Terhutang / Piutang</th>
+                  <th class="px-4 py-3">Sisa / Outstanding</th>
                   <th class="px-4 py-3">Tipe</th>
                   <th class="px-4 py-3">Dibuat</th>
                   <th class="px-4 py-3">Aksi</th>
@@ -376,7 +379,6 @@ onMounted(async () => {
                   class="rounded-3xl bg-slate-50 align-top text-sm shadow-sm transition hover:bg-slate-100"
                 >
                   <td class="px-4 py-4 text-slate-900">{{ loan.name }}</td>
-                  <td class="px-4 py-4 text-slate-900">{{ formatCurrency(loan.balance) }}</td>
                   <td class="px-4 py-4 text-slate-900">{{ formatCurrency(loan.outstanding_amount ?? 0) }}</td>
                   <td class="px-4 py-4">
                     <span

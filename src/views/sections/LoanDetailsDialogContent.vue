@@ -20,7 +20,7 @@ const categories = ref([])
 
 const form = reactive({
   amount: '',
-  transaction_type: 'debit',
+  type: 'decrease',
   description: '',
   account_id: '',
   category_id: '',
@@ -55,14 +55,11 @@ const openAddPayment = async () => {
 
   // defaults
   form.amount = ''
-  form.transaction_type = 'debit'
+  form.type = 'decrease'
   form.description = ''
+  form.account_id = ''
   form.category_id = ''
   form.transaction_date = new Date().toISOString().slice(0, 10)
-
-  if (accounts.value.length && !form.account_id) {
-    form.account_id = String(accounts.value[0].id)
-  }
 }
 
 const openEditPayment = async (payment) => {
@@ -73,12 +70,12 @@ const openEditPayment = async (payment) => {
   showAddPaymentForm.value = true
   editingPaymentId.value = payment.id
 
-  form.amount = payment.transaction?.amount ? String(payment.transaction.amount) : ''
-  form.transaction_type = payment.transaction?.transaction_type || 'debit'
+  form.amount = payment.amount ? String(payment.amount) : ''
+  form.type = payment.type || 'decrease'
   form.description = payment.transaction?.description || ''
   form.account_id = payment.transaction?.account_id ? String(payment.transaction.account_id) : ''
   form.category_id = payment.transaction?.category_id ? String(payment.transaction.category_id) : ''
-  form.transaction_date = payment.transaction?.transaction_date ? payment.transaction.transaction_date.slice(0, 10) : new Date().toISOString().slice(0, 10)
+  form.transaction_date = payment.payment_date ? payment.payment_date.slice(0, 10) : new Date().toISOString().slice(0, 10)
 }
 
 const closeAddPayment = () => {
@@ -93,26 +90,21 @@ const numericAmount = (value) => {
 
 const submitAddPayment = async () => {
   if (!props.loan?.id) return
-  if (!form.account_id) {
-    notification.showError('Akun wajib dipilih')
-    return
-  }
-  if (!form.amount || Number(form.amount) <= 0) {
-    notification.showError('Jumlah harus lebih besar dari 0')
-    return
-  }
-
   loading.value = true
   try {
     const payload = {
       loan_id: props.loan.id,
-      transaction: {
-        amount: Number(form.amount),
-        transaction_type: form.transaction_type,
+      amount: Number(form.amount),
+      type: form.type,
+      payment_date: new Date(form.transaction_date).toISOString(),
+    }
+
+    if (form.account_id) {
+      payload.transaction = {
+        transaction_type: form.type === 'decrease' ? 'credit' : 'debit',
         ...(form.description.trim() ? { description: form.description.trim() } : {}),
         account_id: Number(form.account_id),
-        ...(form.category_id ? { category_id: Number(form.category_id) } : {}),
-        transaction_date: new Date(form.transaction_date).toISOString()
+        ...(form.category_id ? { category_id: Number(form.category_id) } : {})
       }
     }
 
@@ -189,16 +181,16 @@ const paymentsTotal = computed(() => props.payments.length)
             :validate="['Jumlah harus > 0', numericAmount]"
           />
 
-          <div class="md:col-span-1">
-            <label class="block text-sm font-medium text-slate-700 mb-2">Tipe</label>
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-slate-700 mb-2">Tipe Pembayaran</label>
             <div class="grid grid-cols-2 gap-3">
               <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-3 cursor-pointer hover:bg-slate-50">
-                <input type="radio" value="debit" v-model="form.transaction_type" class="accent-blue-600" />
-                <span class="text-sm font-semibold text-slate-800">Debit</span>
+                <input type="radio" value="decrease" v-model="form.type" class="accent-blue-600" />
+                <span class="text-sm font-semibold text-slate-800">Pembayaran (Decrease)</span>
               </label>
               <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-3 cursor-pointer hover:bg-slate-50">
-                <input type="radio" value="credit" v-model="form.transaction_type" class="accent-blue-600" />
-                <span class="text-sm font-semibold text-slate-800">Credit</span>
+                <input type="radio" value="increase" v-model="form.type" class="accent-blue-600" />
+                <span class="text-sm font-semibold text-slate-800">Penambahan (Increase)</span>
               </label>
             </div>
           </div>
@@ -221,13 +213,12 @@ const paymentsTotal = computed(() => props.payments.length)
           </div>
 
           <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-slate-700 mb-2">Akun</label>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Akun (opsional)</label>
             <select
               v-model="form.account_id"
               class="w-full rounded-2xl border border-slate-300 bg-white py-3 px-4 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-              required
             >
-              <option value="">Pilih akun</option>
+              <option value="">Pilih akun (kosong untuk tanpa transaksi)</option>
               <option v-for="a in accounts" :key="a.id" :value="String(a.id)">{{ a.account_name }}</option>
             </select>
           </div>
@@ -270,9 +261,9 @@ const paymentsTotal = computed(() => props.payments.length)
         <table class="min-w-full border-separate border-spacing-y-2 text-left">
           <thead>
             <tr class="text-xs text-slate-500">
-              <th class="px-3 py-2">ID</th>
-              <th class="px-3 py-2">Balance</th>
-              <th class="px-3 py-2">Created</th>
+              <th class="px-3 py-2">Tipe</th>
+              <th class="px-3 py-2">Jumlah</th>
+              <th class="px-3 py-2">Tanggal</th>
               <th class="px-3 py-2">Aksi</th>
             </tr>
           </thead>
@@ -282,9 +273,13 @@ const paymentsTotal = computed(() => props.payments.length)
               :key="p.id"
               class="rounded-xl bg-slate-50 text-sm shadow-sm"
             >
-              <td class="px-3 py-2 text-slate-900">{{ p.id }}</td>
-              <td class="px-3 py-2 text-slate-700">{{ formatCurrency(p.transaction?.amount) }}</td>
-              <td class="px-3 py-2 text-slate-500">{{ formatDate(p.created_at) }}</td>
+              <td class="px-3 py-2 text-slate-900">
+                <span :class="p.type === 'increase' ? 'text-red-600' : 'text-emerald-600'">
+                  {{ p.type }}
+                </span>
+              </td>
+              <td class="px-3 py-2 text-slate-700">{{ formatCurrency(p.amount) }}</td>
+              <td class="px-3 py-2 text-slate-500">{{ formatDate(p.payment_date) }}</td>
               <td class="px-3 py-2">
                 <button
                   @click="openEditPayment(p)"
