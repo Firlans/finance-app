@@ -43,7 +43,7 @@ func (uc *useCase) Save(ctx context.Context, payment *CreatePaymentRequest) (int
 	if payment.Transaction != nil {
 		txn := &transactions.Transaction{
 			Amount:          payment.Amount,
-			TransactionType: payment.Transaction.TransactionType,
+			TransactionType: uc.determineTransactionType(ctx, payment.LoanID, payment.Type),
 			Description:     payment.Transaction.Description,
 			AccountID:       payment.Transaction.AccountID,
 			CategoryID:      payment.Transaction.CategoryID,
@@ -101,7 +101,7 @@ func (uc *useCase) Update(ctx context.Context, id int, payment *UpdatePaymentReq
 
 			txn = &transactions.Transaction{
 				Amount:          existingPayment.Amount,
-				TransactionType: payment.Transaction.TransactionType,
+				TransactionType: uc.determineTransactionType(ctx, existingPayment.LoanID, existingPayment.Type),
 				Description:     payment.Transaction.Description,
 				AccountID:       payment.Transaction.AccountID,
 				CategoryID:      payment.Transaction.CategoryID,
@@ -127,7 +127,7 @@ func (uc *useCase) Update(ctx context.Context, id int, payment *UpdatePaymentReq
 			}
 
 			txn.Amount = existingPayment.Amount
-			txn.TransactionType = payment.Transaction.TransactionType
+			txn.TransactionType = uc.determineTransactionType(ctx, existingPayment.LoanID, existingPayment.Type)
 			txn.Description = payment.Transaction.Description
 			txn.AccountID = payment.Transaction.AccountID
 			txn.CategoryID = payment.Transaction.CategoryID
@@ -206,4 +206,24 @@ func (uc *useCase) Delete(ctx context.Context, id int) error {
 		}
 	}
 	return uc.repo.DeletePayment(ctx, id)
+}
+
+func (uc *useCase) determineTransactionType(ctx context.Context, loanID int, paymentType string) string {
+	loanType, err := uc.repo.GetLoanTypeByID(ctx, loanID)
+	if err != nil {
+		return "decrease" // fallback
+	}
+
+	if loanType == "debt" {
+		if paymentType == "decrease" {
+			return "credit"
+		}
+		return "debit"
+	}
+
+	// receivable or fallback
+	if paymentType == "decrease" {
+		return "debit"
+	}
+	return "credit"
 }

@@ -16,6 +16,7 @@ type Repository interface {
 	FindFirstPaymentByLoanID(ctx context.Context, loanID int) (*Payment, error)
 	UpdatePayment(ctx context.Context, payment *Payment) error
 	DeletePayment(ctx context.Context, id int) error
+	GetLoanTypeByID(ctx context.Context, loanID int) (string, error)
 }
 
 type repository struct{ *pgxpool.Pool }
@@ -147,4 +148,11 @@ func (r *repository) DeletePayment(ctx context.Context, id int) error {
 		return err
 	}
 	return nil
+}
+
+func (r *repository) GetLoanTypeByID(ctx context.Context, loanID int) (string, error) {
+	query := `SELECT loan_type FROM loans WHERE id = $1`
+	var loanType string
+	err := r.QueryRow(ctx, query, loanID).Scan(&loanType)
+	return loanType, err
 }

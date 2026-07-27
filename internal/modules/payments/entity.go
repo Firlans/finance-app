@@ -24,7 +24,6 @@ type UpdatePaymentRequest struct {
 }
 
 type TransactionInput struct {
-	TransactionType string  `json:"transaction_type" validate:"required,oneof=debit credit"`
 	Description     string  `json:"description,omitempty" validate:"max=255"`
 	AccountID       int     `json:"account_id" validate:"required,gt=0"`
 	CategoryID      *int    `json:"category_id,omitempty"`
