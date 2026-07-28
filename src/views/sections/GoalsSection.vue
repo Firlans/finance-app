@@ -144,8 +144,8 @@ onMounted(async () => {
       </div>
       <form ref="formRef" @submit.prevent="handleSubmit" class="grid gap-5 pt-6 md:grid-cols-2">
         <BaseInput v-model="form.name" label="Nama Tabungan" placeholder="Contoh: Liburan Bali" required />
-        <BaseInput v-model="form.target_amount" type="number" label="Target (Rp)" placeholder="Contoh: 5000000" required min="1" />
-        <BaseInput v-model="form.current_amount" type="number" label="Jumlah Saat Ini (Rp)" placeholder="Contoh: 2000000" min="0" />
+        <BaseInput v-model="form.target_amount" type="money" label="Target (Rp)" placeholder="Contoh: 5000000" required min="1" />
+        <BaseInput v-model="form.current_amount" type="money" label="Jumlah Saat Ini (Rp)" placeholder="Contoh: 2000000" min="0" />
 
         <div class="md:col-span-2 flex flex-col gap-3 sm:flex-row sm:justify-end mt-2 pt-2 border-t border-slate-100">
           <button v-if="editingId" type="button" @click="handleDelete(editingId)"

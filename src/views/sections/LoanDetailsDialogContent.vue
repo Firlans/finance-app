@@ -20,6 +20,7 @@ const categories = ref([])
 
 const form = reactive({
   amount: '',
+  interest: '',
   type: 'decrease',
   description: '',
   account_id: '',
@@ -55,6 +56,7 @@ const openAddPayment = async () => {
 
   // defaults
   form.amount = ''
+  form.interest = ''
   form.type = 'decrease'
   form.description = ''
   form.account_id = ''
@@ -71,6 +73,7 @@ const openEditPayment = async (payment) => {
   editingPaymentId.value = payment.id
 
   form.amount = payment.amount ? String(payment.amount) : ''
+  form.interest = payment.interest ? String(payment.interest) : ''
   form.type = payment.type || 'decrease'
   form.description = payment.transaction?.description || ''
   form.account_id = payment.transaction?.account_id ? String(payment.transaction.account_id) : ''
@@ -95,6 +98,7 @@ const submitAddPayment = async () => {
     const payload = {
       loan_id: props.loan.id,
       amount: Number(form.amount),
+      interest: Number(form.interest) || 0,
       type: form.type,
       payment_date: new Date(form.transaction_date).toISOString(),
     }
@@ -173,11 +177,18 @@ const paymentsTotal = computed(() => props.payments.length)
         <form @submit.prevent="submitAddPayment" class="grid gap-4 md:grid-cols-2">
           <BaseInput
             v-model="form.amount"
-            label="Jumlah"
+            label="Jumlah (Pokok)"
             type="money"
             placeholder="0"
             required
             :validate="['Jumlah harus > 0', numericAmount]"
+          />
+
+          <BaseInput
+            v-model="form.interest"
+            label="Bunga (Interest)"
+            type="money"
+            placeholder="0"
           />
 
           <div class="md:col-span-2">
@@ -261,7 +272,9 @@ const paymentsTotal = computed(() => props.payments.length)
           <thead>
             <tr class="text-xs text-slate-500">
               <th class="px-3 py-2">Tipe</th>
-              <th class="px-3 py-2">Jumlah</th>
+              <th class="px-3 py-2">Pokok</th>
+              <th class="px-3 py-2">Bunga</th>
+              <th class="px-3 py-2">Total Transaksi</th>
               <th class="px-3 py-2">Tanggal</th>
               <th class="px-3 py-2">Aksi</th>
             </tr>
@@ -278,6 +291,8 @@ const paymentsTotal = computed(() => props.payments.length)
                 </span>
               </td>
               <td class="px-3 py-2 text-slate-700">{{ formatCurrency(p.amount) }}</td>
+              <td class="px-3 py-2 text-slate-700">{{ formatCurrency(p.interest || 0) }}</td>
+              <td class="px-3 py-2 font-medium text-slate-900">{{ formatCurrency((Number(p.amount) || 0) + (Number(p.interest) || 0)) }}</td>
               <td class="px-3 py-2 text-slate-500">{{ formatDate(p.payment_date) }}</td>
               <td class="px-3 py-2">
                 <button
