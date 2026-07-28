@@ -42,7 +42,7 @@ func (uc *useCase) Save(ctx context.Context, payment *CreatePaymentRequest) (int
 
 	if payment.Transaction != nil {
 		txn := &transactions.Transaction{
-			Amount:          payment.Amount,
+			Amount:          payment.Amount + payment.Interest,
 			TransactionType: uc.determineTransactionType(ctx, payment.LoanID, payment.Type),
 			Description:     payment.Transaction.Description,
 			AccountID:       payment.Transaction.AccountID,
@@ -87,6 +87,9 @@ func (uc *useCase) Update(ctx context.Context, id int, payment *UpdatePaymentReq
 	if payment.Amount != nil {
 		existingPayment.Amount = *payment.Amount
 	}
+	if payment.Interest != nil {
+		existingPayment.Interest = *payment.Interest
+	}
 	if payment.Type != nil {
 		existingPayment.Type = *payment.Type
 	}
@@ -100,7 +103,7 @@ func (uc *useCase) Update(ctx context.Context, id int, payment *UpdatePaymentReq
 		if existingPayment.TransactionID == nil {
 
 			txn = &transactions.Transaction{
-				Amount:          existingPayment.Amount,
+				Amount:          existingPayment.Amount + existingPayment.Interest,
 				TransactionType: uc.determineTransactionType(ctx, existingPayment.LoanID, existingPayment.Type),
 				Description:     payment.Transaction.Description,
 				AccountID:       payment.Transaction.AccountID,
@@ -126,7 +129,7 @@ func (uc *useCase) Update(ctx context.Context, id int, payment *UpdatePaymentReq
 				return errors.New("associated transaction not found")
 			}
 
-			txn.Amount = existingPayment.Amount
+			txn.Amount = existingPayment.Amount + existingPayment.Interest
 			txn.TransactionType = uc.determineTransactionType(ctx, existingPayment.LoanID, existingPayment.Type)
 			txn.Description = payment.Transaction.Description
 			txn.AccountID = payment.Transaction.AccountID

@@ -10,6 +10,7 @@ type CreatePaymentRequest struct {
 	ID            int               `json:"id,omitempty"`
 	LoanID        int               `json:"loan_id" validate:"required,gt=0"`
 	Amount        float64           `json:"amount" validate:"required,gt=0"`
+	Interest      float64           `json:"interest" validate:"gte=0"`
 	Type          string            `json:"type" validate:"required,oneof=increase decrease"`
 	PaymentDate   time.Time         `json:"payment_date" validate:"required"`
 	TransactionID *int              `json:"-"`
@@ -18,6 +19,7 @@ type CreatePaymentRequest struct {
 
 type UpdatePaymentRequest struct {
 	Amount      *float64          `json:"amount,omitempty" validate:"omitempty,gt=0"`
+	Interest    *float64          `json:"interest,omitempty" validate:"omitempty,gte=0"`
 	Type        *string           `json:"type,omitempty" validate:"omitempty,oneof=increase decrease"`
 	PaymentDate *time.Time        `json:"payment_date,omitempty" validate:"omitempty"`
 	Transaction *TransactionInput `json:"transaction,omitempty" validate:"omitempty"`
@@ -37,6 +39,7 @@ type Payment struct {
 	ID            int                       `json:"id"`
 	LoanID        int                       `json:"loan_id"`
 	Amount        float64                   `json:"amount"`
+	Interest      float64                   `json:"interest"`
 	Type          string                    `json:"type"`
 	PaymentDate   time.Time                 `json:"payment_date"`
 	TransactionID *int                      `json:"transaction_id"`
