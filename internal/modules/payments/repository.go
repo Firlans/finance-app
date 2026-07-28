@@ -17,6 +17,7 @@ type Repository interface {
 	UpdatePayment(ctx context.Context, payment *Payment) error
 	DeletePayment(ctx context.Context, id int) error
 	GetLoanTypeByID(ctx context.Context, loanID int) (string, error)
+	GetHutangCategoryID(ctx context.Context) (*int, error)
 }
 
 type repository struct{ *pgxpool.Pool }
@@ -155,4 +156,14 @@ func (r *repository) GetLoanTypeByID(ctx context.Context, loanID int) (string, e
 	var loanType string
 	err := r.QueryRow(ctx, query, loanID).Scan(&loanType)
 	return loanType, err
+}
+
+func (r *repository) GetHutangCategoryID(ctx context.Context) (*int, error) {
+	query := `SELECT id FROM categories WHERE name = 'Hutang' AND user_id IS NULL LIMIT 1`
+	var id int
+	err := r.QueryRow(ctx, query).Scan(&id)
+	if err != nil {
+		return nil, err
+	}
+	return &id, nil
 }

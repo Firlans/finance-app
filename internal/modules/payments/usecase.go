@@ -41,12 +41,20 @@ func (uc *useCase) Save(ctx context.Context, payment *CreatePaymentRequest) (int
 	}
 
 	if payment.Transaction != nil {
+		categoryID := payment.Transaction.CategoryID
+		if categoryID == nil || *categoryID == 0 {
+			hutangCatID, err := uc.repo.GetHutangCategoryID(ctx)
+			if err == nil && hutangCatID != nil {
+				categoryID = hutangCatID
+			}
+		}
+
 		txn := &transactions.Transaction{
 			Amount:          payment.Amount + payment.Interest,
 			TransactionType: uc.determineTransactionType(ctx, payment.LoanID, payment.Type),
 			Description:     payment.Transaction.Description,
 			AccountID:       payment.Transaction.AccountID,
-			CategoryID:      payment.Transaction.CategoryID,
+			CategoryID:      categoryID,
 			TransactionDate: payment.PaymentDate,
 			CreatedAt:       time.Now().UTC(),
 			UpdatedAt:       time.Now().UTC(),
@@ -100,6 +108,14 @@ func (uc *useCase) Update(ctx context.Context, id int, payment *UpdatePaymentReq
 	if payment.Transaction != nil {
 		var txn *transactions.Transaction
 
+		categoryID := payment.Transaction.CategoryID
+		if categoryID == nil || *categoryID == 0 {
+			hutangCatID, err := uc.repo.GetHutangCategoryID(ctx)
+			if err == nil && hutangCatID != nil {
+				categoryID = hutangCatID
+			}
+		}
+
 		if existingPayment.TransactionID == nil {
 
 			txn = &transactions.Transaction{
@@ -107,7 +123,7 @@ func (uc *useCase) Update(ctx context.Context, id int, payment *UpdatePaymentReq
 				TransactionType: uc.determineTransactionType(ctx, existingPayment.LoanID, existingPayment.Type),
 				Description:     payment.Transaction.Description,
 				AccountID:       payment.Transaction.AccountID,
-				CategoryID:      payment.Transaction.CategoryID,
+				CategoryID:      categoryID,
 				TransactionDate: existingPayment.PaymentDate,
 				CreatedAt:       time.Now().UTC(),
 				UpdatedAt:       time.Now().UTC(),
@@ -133,7 +149,9 @@ func (uc *useCase) Update(ctx context.Context, id int, payment *UpdatePaymentReq
 			txn.TransactionType = uc.determineTransactionType(ctx, existingPayment.LoanID, existingPayment.Type)
 			txn.Description = payment.Transaction.Description
 			txn.AccountID = payment.Transaction.AccountID
-			txn.CategoryID = payment.Transaction.CategoryID
+			if categoryID != nil {
+				txn.CategoryID = categoryID
+			}
 			txn.TransactionDate = existingPayment.PaymentDate
 			txn.UpdatedAt = time.Now().UTC()
 
