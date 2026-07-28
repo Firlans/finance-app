@@ -13,6 +13,7 @@ type Repository interface {
 	GetTransactionByID(ctx context.Context, id int) (*Transaction, error)
 	UpdateTransaction(ctx context.Context, transaction *Transaction) error
 	DeleteTransaction(ctx context.Context, id int) error
+	IsTransactionLinkedToPayment(ctx context.Context, transactionID int) (bool, error)
 }
 
 type repository struct{ *pgxpool.Pool }
@@ -45,7 +46,7 @@ func (r *repository) Save(ctx context.Context, transaction *Transaction) error {
 }
 
 func (r *repository) GetTransactions(ctx context.Context, userID string, from string, to string, page int) ([]Transaction, error) {
-	query := `SELECT t.id, t.amount, t.transaction_type, t.description, t.category_id, t.account_id, t.transaction_date, t.created_at, t.updated_at FROM transactions t 
+	query := `SELECT t.id, t.amount, t.transaction_type, t.description, t.category_id, t.account_id, t.transaction_date, t.created_at, t.updated_at, EXISTS(SELECT 1 FROM payments p WHERE p.transaction_id = t.id) as is_loan FROM transactions t 
 	JOIN accounts a ON t.account_id = a.id WHERE a.user_id = $1`
 	var args []interface{}
 	args = append(args, userID)
@@ -94,6 +95,7 @@ func (r *repository) GetTransactions(ctx context.Context, userID string, from st
 			&transaction.TransactionDate,
 			&transaction.CreatedAt,
 			&transaction.UpdatedAt,
+			&transaction.IsLoan,
 		)
 		if err != nil {
 			return nil, err
@@ -105,7 +107,7 @@ func (r *repository) GetTransactions(ctx context.Context, userID string, from st
 }
 
 func (r *repository) GetTransactionByID(ctx context.Context, id int) (*Transaction, error) {
-	query := "SELECT id, amount, transaction_type, description, category_id, account_id, transaction_date, created_at, updated_at FROM transactions WHERE id = $1"
+	query := "SELECT id, amount, transaction_type, description, category_id, account_id, transaction_date, created_at, updated_at, EXISTS(SELECT 1 FROM payments p WHERE p.transaction_id = transactions.id) as is_loan FROM transactions WHERE id = $1"
 	row := r.QueryRow(ctx, query, id)
 
 	var transaction Transaction
@@ -119,6 +121,7 @@ func (r *repository) GetTransactionByID(ctx context.Context, id int) (*Transacti
 		&transaction.TransactionDate,
 		&transaction.CreatedAt,
 		&transaction.UpdatedAt,
+		&transaction.IsLoan,
 	)
 	if err != nil {
 		return nil, err
@@ -137,4 +140,11 @@ func (r *repository) DeleteTransaction(ctx context.Context, id int) error {
 	query := "DELETE FROM transactions WHERE id = $1"
 	_, err := r.Exec(ctx, query, id)
 	return err
+}
+
+func (r *repository) IsTransactionLinkedToPayment(ctx context.Context, transactionID int) (bool, error) {
+	query := `SELECT EXISTS(SELECT 1 FROM payments WHERE transaction_id = $1)`
+	var exists bool
+	err := r.QueryRow(ctx, query, transactionID).Scan(&exists)
+	return exists, err
 }

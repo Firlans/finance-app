@@ -31,7 +31,12 @@ func (h *Handler) getCategories(c *fiber.Ctx) error {
 		})
 	}
 
-	res, err := h.useCase.GetCategories(c.Context(), &userID)
+	typeCategory := c.Query("type_category")
+	if typeCategory == "" {
+		typeCategory = c.Query("type")
+	}
+
+	res, err := h.useCase.GetCategories(c.Context(), &userID, typeCategory)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error":      err.Error(),
@@ -92,9 +97,10 @@ func (h *Handler) createCategory(c *fiber.Ctx) error {
 	}
 
 	category := &Category{
-		Name:        req.Name,
-		Description: req.Description,
-		UserID:      userID,
+		Name:         req.Name,
+		Description:  req.Description,
+		TypeCategory: req.TypeCategory,
+		UserID:       userID,
 	}
 
 	err := h.useCase.Save(c.Context(), category)
@@ -136,11 +142,21 @@ func (h *Handler) updateCategory(c *fiber.Ctx) error {
 		})
 	}
 
+	var name string
+	if req.Name != nil {
+		name = *req.Name
+	}
+	var typeCategory string
+	if req.TypeCategory != nil {
+		typeCategory = *req.TypeCategory
+	}
+
 	category := &Category{
-		ID:          id,
-		Name:        *req.Name,
-		Description: req.Description,
-		UserID:      userID,
+		ID:           id,
+		Name:         name,
+		Description:  req.Description,
+		TypeCategory: typeCategory,
+		UserID:       userID,
 	}
 	err = h.useCase.UpdateCategory(c.Context(), category)
 	if err != nil {

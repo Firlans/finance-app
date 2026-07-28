@@ -2,6 +2,7 @@ package transactions
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -75,6 +76,14 @@ func (uc *useCase) UpdateTransaction(ctx context.Context, transaction *Transacti
 		return nil
 	}
 
+	isLinked, err := uc.repo.IsTransactionLinkedToPayment(ctx, req.ID)
+	if err != nil {
+		return err
+	}
+	if isLinked {
+		return errors.New("transaksi yang berasal dari hutang tidak dapat di-edit langsung")
+	}
+
 	existing.Amount = req.Amount
 	existing.TransactionType = req.TransactionType
 	existing.Description = req.Description
@@ -103,6 +112,14 @@ func (uc *useCase) DeleteTransaction(ctx context.Context, id int) error {
 
 	if account == nil {
 		return nil
+	}
+
+	isLinked, err := uc.repo.IsTransactionLinkedToPayment(ctx, id)
+	if err != nil {
+		return err
+	}
+	if isLinked {
+		return errors.New("transaksi yang berasal dari hutang tidak dapat dihapus langsung")
 	}
 
 	return uc.repo.DeleteTransaction(ctx, id)

@@ -10,6 +10,7 @@ type Transaction struct {
 	AccountID       int       `json:"account_id"`
 	CategoryID      *int      `json:"category_id"`
 	UserID          string    `json:"user_id"`
+	IsLoan          bool      `json:"is_loan"`
 	TransactionDate time.Time `json:"transaction_date"`
 	CreatedAt       time.Time `json:"created_at"`
 	UpdatedAt       time.Time `json:"updated_at"`
