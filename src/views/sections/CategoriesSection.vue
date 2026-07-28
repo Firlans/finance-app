@@ -33,12 +33,12 @@ const selectedCategory = ref(null)
 const editingId = ref(null)
 const formRef = ref(null)
 
-const form = reactive({ name: '', description: '' })
+const form = reactive({ name: '', description: '', type_category: 'expense' })
 
 const filteredCategories = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
   return categories.value.filter((c) =>
-    !q || [c.name, c.description].join(' ').toLowerCase().includes(q)
+    c.type_category !== 'both' && (!q || [c.name, c.description].join(' ').toLowerCase().includes(q))
   )
 })
 
@@ -61,6 +61,7 @@ const loadCategories = async () => {
 const resetForm = () => {
   form.name = ''
   form.description = ''
+  form.type_category = 'expense'
   editingId.value = null
 }
 
@@ -73,6 +74,7 @@ const openNewForm = async () => { resetForm(); isFormOpen.value = true; await fo
 const openEditForm = async (category) => {
   form.name = category.name || ''
   form.description = category.description || ''
+  form.type_category = category.type_category || 'expense'
   editingId.value = category.id
   isFormOpen.value = true
   await focusFormField()
@@ -113,7 +115,8 @@ const handleSubmit = async (event) => {
   }
   const payload = {
     name: form.name.trim(),
-    description: form.description.trim()
+    description: form.description.trim(),
+    type_category: form.type_category
   }
   try {
     if (editingId.value) {
@@ -189,6 +192,19 @@ onMounted(async () => {
             required
             :validate="['Nama kategori wajib diisi', validCategoryName]" />
           <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-slate-700 mb-2">Tipe Kategori</label>
+            <div class="grid grid-cols-2 gap-3">
+              <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-3 cursor-pointer hover:bg-slate-50">
+                <input type="radio" value="expense" v-model="form.type_category" class="accent-blue-600" />
+                <span class="text-sm font-semibold text-slate-800">Pengeluaran (Expense)</span>
+              </label>
+              <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-3 cursor-pointer hover:bg-slate-50">
+                <input type="radio" value="income" v-model="form.type_category" class="accent-blue-600" />
+                <span class="text-sm font-semibold text-slate-800">Pendapatan (Income)</span>
+              </label>
+            </div>
+          </div>
+          <div class="md:col-span-2">
             <BaseInput v-model="form.description" label="Deskripsi" placeholder="Contoh: Pengeluaran harian untuk makan" />
           </div>
           <div class="md:col-span-2 flex flex-col gap-3 sm:flex-row sm:justify-end">
@@ -217,9 +233,14 @@ onMounted(async () => {
               role="button" tabindex="0" @click="openMobileActions(category)"
               @keydown.enter.prevent="openMobileActions(category)"
               @keydown.space.prevent="openMobileActions(category)">
-              <div>
-                <p class="font-semibold text-slate-900 text-sm">{{ category.name }}</p>
-                <p class="text-xs text-slate-500 mt-0.5">{{ category.description || '-' }}</p>
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <p class="font-semibold text-slate-900 text-sm">{{ category.name }}</p>
+                  <p class="text-xs text-slate-500 mt-0.5">{{ category.description || '-' }}</p>
+                </div>
+                <span :class="category.type_category === 'income' ? 'bg-emerald-100 text-emerald-700' : category.type_category === 'both' ? 'bg-blue-100 text-blue-700' : 'bg-rose-100 text-rose-700'" class="rounded-full px-2 py-0.5 text-xs font-semibold">
+                  {{ category.type_category === 'income' ? 'Pendapatan' : category.type_category === 'both' ? 'Semua Tipe' : 'Pengeluaran' }}
+                </span>
               </div>
               <div class="text-xs text-slate-400">Dibuat: {{ formatDate(category.created_at) }}</div>
             </div>
@@ -230,6 +251,7 @@ onMounted(async () => {
               <thead>
                 <tr class="text-sm text-slate-500">
                   <th class="px-4 py-3">Nama Kategori</th>
+                  <th class="px-4 py-3">Tipe</th>
                   <th class="px-4 py-3">Deskripsi</th>
                   <th class="px-4 py-3">Dibuat</th>
                   <th class="px-4 py-3">Aksi</th>
@@ -239,6 +261,11 @@ onMounted(async () => {
                 <tr v-for="category in filteredCategories" :key="category.id"
                   class="rounded-3xl bg-slate-50 align-top text-sm shadow-sm transition hover:bg-slate-100">
                   <td class="px-4 py-4 text-slate-900">{{ category.name }}</td>
+                  <td class="px-4 py-4">
+                    <span :class="category.type_category === 'income' ? 'bg-emerald-100 text-emerald-700' : category.type_category === 'both' ? 'bg-blue-100 text-blue-700' : 'bg-rose-100 text-rose-700'" class="rounded-full px-3 py-1 text-xs font-semibold">
+                      {{ category.type_category === 'income' ? 'Pendapatan' : category.type_category === 'both' ? 'Semua Tipe' : 'Pengeluaran' }}
+                    </span>
+                  </td>
                   <td class="px-4 py-4 text-slate-600">{{ category.description || '-' }}</td>
                   <td class="px-4 py-4 text-slate-600">{{ formatDate(category.created_at) }}</td>
                   <td class="px-4 py-4 space-x-2">

@@ -41,7 +41,16 @@ const form = reactive({
   category_id: ''
 })
 
-const categoriesLookupRoute = `${Config.url}/categories`
+const categoriesLookupRoute = computed(() => {
+  const typeParam = form.type === 'debit' ? 'income' : 'expense'
+  return `${Config.url}/categories?type_category=${typeParam}`
+})
+
+watch(() => form.type, (newType, oldType) => {
+  if (oldType && newType !== oldType) {
+    form.category_id = ''
+  }
+})
 
 const typeOptions = [
   { value: 'credit', label: 'Expense' },
@@ -240,6 +249,10 @@ const openNewForm = async () => {
 }
 
 const openEditForm = async (transaction) => {
+  if (transaction.is_loan) {
+    notification.showError('Transaksi ini terhubung dengan hutang/piutang dan tidak dapat di-edit langsung')
+    return
+  }
   form.description = transaction.description || ''
   form.amount = transaction.amount != null ? String(transaction.amount) : ''
   form.type = transaction.type || 'debit'
@@ -267,6 +280,10 @@ const closeForm = () => {
 }
 
 const openMobileActions = async (transaction) => {
+  if (transaction.is_loan) {
+    notification.showError('Transaksi ini terhubung dengan hutang/piutang dan tidak dapat diubah/dihapus langsung.')
+    return
+  }
   selectedMobileTransaction.value = transaction
   const result = await mobileActionsDialog.open()
   selectedMobileTransaction.value = null
@@ -322,6 +339,12 @@ const handleSubmit = async (event) => {
 }
 
 const handleDelete = async (transactionId) => {
+  const target = transactions.value.find((t) => t.id === transactionId)
+  if (target?.is_loan) {
+    notification.showError('Transaksi ini terhubung dengan hutang/piutang dan tidak dapat dihapus langsung')
+    return
+  }
+
   const confirmDialog = new Dialog(
     {
       name: 'DeleteTransactionDialogContent',
@@ -550,14 +573,19 @@ onUnmounted(() => {
                   <td class="px-4 py-4 text-right font-semibold text-slate-900">{{ formatCurrency(transaction.amount)
                   }}</td>
                   <td class="px-4 py-4 space-x-2">
-                    <button @click="openEditForm(transaction)"
-                      class="rounded-lg bg-slate-100 px-3 py-1 text-sm text-slate-700 transition hover:bg-slate-200">
-                      Edit
-                    </button>
-                    <button @click="handleDelete(transaction.id)"
-                      class="rounded-lg bg-red-600 px-3 py-1 text-sm font-semibold text-white transition hover:bg-red-700">
-                      Hapus
-                    </button>
+                    <span v-if="transaction.is_loan" class="inline-flex items-center rounded-lg bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                      Hutang
+                    </span>
+                    <template v-else>
+                      <button @click="openEditForm(transaction)"
+                        class="rounded-lg bg-slate-100 px-3 py-1 text-sm text-slate-700 transition hover:bg-slate-200">
+                        Edit
+                      </button>
+                      <button @click="handleDelete(transaction.id)"
+                        class="rounded-lg bg-red-600 px-3 py-1 text-sm font-semibold text-white transition hover:bg-red-700">
+                        Hapus
+                      </button>
+                    </template>
                   </td>
                 </tr>
               </tbody>
