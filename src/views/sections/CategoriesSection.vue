@@ -37,8 +37,9 @@ const form = reactive({ name: '', description: '', type_category: 'expense' })
 
 const filteredCategories = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
+  const systemTypes = ['both', 'loan', 'transfer', 'fee']
   return categories.value.filter((c) =>
-    c.type_category !== 'both' && (!q || [c.name, c.description].join(' ').toLowerCase().includes(q))
+    !systemTypes.includes(c.type_category) && (!q || [c.name, c.description].join(' ').toLowerCase().includes(q))
   )
 })
 
