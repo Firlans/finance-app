@@ -1,0 +1,44 @@
+name: Auto Deploy Backend to VPS (via Cloudflare Tunnel)
+
+on:
+  push:
+    branches:
+      - backend
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to Server via Cloudflare Tunnel
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Go Environment
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Run Unit Tests
+        run: go test ./...
+
+      - name: Install Cloudflared CLI
+        run: |
+          curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+          sudo dpkg -i cloudflared.deb
+          rm cloudflared.deb
+
+      - name: Deploy via SSH & Cloudflare Tunnel
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          proxy_cmd: cloudflared access ssh --hostname ${{ secrets.VPS_HOST }}
+          script: |
+            cd /home/firlan/finance-app
+            git pull origin backend
+            cd /home/firlan/docker
+            docker compose up -d finance-migrate
+            docker compose up -d --build finance-app
