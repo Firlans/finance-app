@@ -46,13 +46,15 @@ const form = reactive({
   category_id: ''
 })
 
+let isPopulatingForm = false
+
 const categoriesLookupRoute = computed(() => {
   const typeParam = form.type === 'debit' ? 'income' : 'expense'
   return `${Config.url}/categories?type_category=${typeParam}`
 })
 
 watch(() => form.type, (newType, oldType) => {
-  if (oldType && newType !== oldType) {
+  if (!isPopulatingForm && oldType && newType !== oldType) {
     form.category_id = ''
   }
 })
@@ -285,6 +287,7 @@ const openEditForm = async (transaction) => {
     isTransferOpen.value = true
     return
   }
+  isPopulatingForm = true
   form.description = transaction.description || ''
   form.amount = transaction.amount != null ? String(transaction.amount) : ''
   form.type = transaction.type || 'debit'
@@ -295,6 +298,8 @@ const openEditForm = async (transaction) => {
     : dayjs().format('YYYY-MM-DD')
   editingId.value = transaction.id
   isFormOpen.value = true
+  await nextTick()
+  isPopulatingForm = false
   await focusFormField()
 }
 
