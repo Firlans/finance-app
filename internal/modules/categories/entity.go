@@ -15,14 +15,14 @@ type Category struct {
 type CreateCategoryRequest struct {
 	Name         string  `json:"name" validate:"required"`
 	Description  *string `json:"description,omitempty"`
-	TypeCategory string  `json:"type_category,omitempty" validate:"omitempty,oneof=expense income both"`
+	TypeCategory string  `json:"type_category,omitempty" validate:"omitempty,oneof=expense income both loan transfer fee"`
 	UserID       string  `json:"user_id,omitempty" validate:"omitempty,uuid4"`
 }
 
 type UpdateCategoryRequest struct {
 	Name         *string `json:"name,omitempty"`
 	Description  *string `json:"description,omitempty"`
-	TypeCategory *string `json:"type_category,omitempty" validate:"omitempty,oneof=expense income both"`
+	TypeCategory *string `json:"type_category,omitempty" validate:"omitempty,oneof=expense income both loan transfer fee"`
 	UserID       *string `json:"user_id,omitempty" validate:"omitempty,uuid4"`
 }
 
