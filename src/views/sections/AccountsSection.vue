@@ -5,9 +5,12 @@ import { Loading } from '@packages/utils/Loading.js'
 import { Notification } from '@packages/utils/Notification.js'
 import { Dialog } from '@packages/utils/Dialog.js'
 import { createAccount, deleteAccount, getAccounts, updateAccount } from '@/DataService.js'
+import TransferModal from './TransferModal.vue'
 
 const loading = new Loading()
 const notification = new Notification()
+const isTransferOpen = ref(false)
+
 const dialog = new Dialog(
   {
     name: 'DeleteAccountDialogContent',
@@ -174,11 +177,21 @@ onMounted(async () => {
         <h2 class="text-lg font-semibold text-slate-900">Akun</h2>
         <p class="text-slate-500 text-sm">Kelola akun tabungan dan saldo Anda.</p>
       </div>
-      <button @click="openNewForm"
-        class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
-        Tambah Akun
-      </button>
+      <div class="flex items-center space-x-3">
+        <button @click="isTransferOpen = true"
+          class="inline-flex items-center justify-center space-x-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+          </svg>
+          <span>Transfer / Tarik Tunai</span>
+        </button>
+        <button @click="openNewForm"
+          class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
+          Tambah Akun
+        </button>
+      </div>
     </div>
+
 
       <div class="grid gap-4 md:grid-cols-[1fr_auto]">
         <input v-model="searchQuery" type="search" placeholder="Cari akun..."
@@ -306,5 +319,8 @@ onMounted(async () => {
         </div>
       </div>
 
+    <TransferModal :is-open="isTransferOpen" :accounts="accounts" @close="isTransferOpen = false" @success="loadAccounts" />
   </div>
 </template>
+
+

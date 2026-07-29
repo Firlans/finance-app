@@ -15,6 +15,7 @@ import {
   getTransactions,
   updateTransaction
 } from '@/DataService.js'
+import TransferModal from './sections/TransferModal.vue'
 
 const notification = new Notification()
 const loading = new Loading()
@@ -22,6 +23,10 @@ const transactions = ref([])
 const accounts = ref([])
 const searchQuery = ref('')
 const isFormOpen = ref(false)
+const isTransferOpen = ref(false)
+const editingTransferId = ref(null)
+
+
 const editingId = ref(null)
 const formRef = ref(null)
 const selectedMobileTransaction = ref(null)
@@ -112,6 +117,15 @@ const mobileActionsDialog = new Dialog(transactionActionsDialogContent, 'bottom'
 const filteredTransactions = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
   return transactions.value.filter((transaction) => {
+    if (transaction.related_transaction_id) {
+      if (transaction.transaction_type === 'debit') {
+        return false
+      }
+      if (transaction.description && transaction.description.startsWith('Biaya Admin Transfer')) {
+        return false
+      }
+    }
+
     const values = [
       transaction.description,
       transaction.type,
@@ -217,6 +231,12 @@ const loadTransactions = async (isLoadMore = false) => {
   }
 }
 
+const onTransferSuccess = async () => {
+  await loadTransactions(false)
+  await loadAccounts()
+}
+
+
 const handleLoadMore = async () => {
   if (!hasMore.value || isLoadingMore.value) return
   currentPage.value++
@@ -248,9 +268,21 @@ const openNewForm = async () => {
   await focusFormField()
 }
 
+const isTransferTransaction = (transaction) => {
+  if (!transaction) return false
+  if (transaction.related_transaction_id != null) return true
+  const desc = (transaction.description || '').toLowerCase()
+  return desc.startsWith('transfer ke') || desc.startsWith('transfer dari')
+}
+
 const openEditForm = async (transaction) => {
   if (transaction.is_loan) {
     notification.showError('Transaksi ini terhubung dengan hutang/piutang dan tidak dapat di-edit langsung')
+    return
+  }
+  if (isTransferTransaction(transaction)) {
+    editingTransferId.value = transaction.id
+    isTransferOpen.value = true
     return
   }
   form.description = transaction.description || ''
@@ -265,6 +297,7 @@ const openEditForm = async (transaction) => {
   isFormOpen.value = true
   await focusFormField()
 }
+
 
 const closeForm = () => {
   isFormOpen.value = false
@@ -436,11 +469,21 @@ onUnmounted(() => {
         <p class="text-slate-600 mt-1">Kelola transaksi pemasukan dan pengeluaran Anda.</p>
       </div>
 
-      <button @click="openNewForm"
-        class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
-        Tambah Transaksi
-      </button>
+      <div class="flex items-center space-x-3">
+        <button @click="editingTransferId = null; isTransferOpen = true"
+          class="inline-flex items-center justify-center space-x-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+          </svg>
+          <span>Transfer</span>
+        </button>
+        <button @click="openNewForm"
+          class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
+          Tambah Transaksi
+        </button>
+      </div>
     </div>
+
 
     <div class="grid gap-4 md:grid-cols-[1fr_auto]">
       <div class="relative">
@@ -598,5 +641,9 @@ onUnmounted(() => {
         </div>
       </div>
     </div>
+
+    <TransferModal :is-open="isTransferOpen" :accounts="accounts" :editing-id="editingTransferId" @close="isTransferOpen = false; editingTransferId = null" @success="onTransferSuccess" />
   </section>
 </template>
+
+

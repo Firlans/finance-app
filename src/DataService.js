@@ -126,7 +126,34 @@ async function createTransaction(token, payload) {
   return json?.data || null
 }
 
+async function createTransfer(token, payload) {
+  const json = await request('/transactions/transfer', {
+    method: 'POST',
+    headers: getAuthHeaders(token),
+    body: JSON.stringify(payload)
+  })
+  return json || null
+}
+
+async function getTransferByID(token, id) {
+  const json = await request(`/transactions/transfer/${id}`, {
+    headers: getAuthHeaders(token, false)
+  })
+  return json?.data || null
+}
+
+async function updateTransfer(token, id, payload) {
+  const json = await request(`/transactions/transfer/${id}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(token),
+    body: JSON.stringify(payload)
+  })
+  return json || null
+}
+
+
 async function updateTransaction(token, id, payload) {
+
   const json = await request(`/transactions/${id}`, {
     method: 'PUT',
     headers: getAuthHeaders(token),
@@ -352,7 +379,12 @@ export {
   deleteAccount,
   getTransactions,
   createTransaction,
+  createTransfer,
+  getTransferByID,
+  updateTransfer,
   updateTransaction,
+
+
   deleteTransaction,
   getSummary,
   logout,
