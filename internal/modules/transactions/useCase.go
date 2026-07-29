@@ -14,6 +14,9 @@ type UseCase interface {
 	GetTransactionByID(ctx context.Context, id int) (*Transaction, error)
 	UpdateTransaction(ctx context.Context, transaction *Transaction) error
 	DeleteTransaction(ctx context.Context, id int) error
+	CreateTransfer(ctx context.Context, userID string, req *CreateTransferRequest) error
+	GetTransferByID(ctx context.Context, userID string, id int) (*CreateTransferRequest, error)
+	UpdateTransfer(ctx context.Context, userID string, id int, req *CreateTransferRequest) error
 }
 
 type useCase struct {
@@ -25,7 +28,48 @@ func NewUseCase(repo Repository, validate *validator.Validate) UseCase {
 	return &useCase{repo: repo, validate: validate}
 }
 
+func (uc *useCase) CreateTransfer(ctx context.Context, userID string, req *CreateTransferRequest) error {
+	if req == nil {
+		return errors.New("request transfer tidak boleh kosong")
+	}
+
+	if req.FromAccountID == req.ToAccountID {
+		return errors.New("akun asal dan akun tujuan tidak boleh sama")
+	}
+
+	if err := uc.validate.Struct(req); err != nil {
+		return err
+	}
+
+	return uc.repo.CreateTransfer(ctx, userID, req)
+}
+
+func (uc *useCase) GetTransferByID(ctx context.Context, userID string, id int) (*CreateTransferRequest, error) {
+	if id == 0 {
+		return nil, nil
+	}
+	return uc.repo.GetTransferByID(ctx, userID, id)
+}
+
+func (uc *useCase) UpdateTransfer(ctx context.Context, userID string, id int, req *CreateTransferRequest) error {
+	if id == 0 || req == nil {
+		return errors.New("data transfer tidak valid")
+	}
+
+	if req.FromAccountID == req.ToAccountID {
+		return errors.New("akun asal dan akun tujuan tidak boleh sama")
+	}
+
+	if err := uc.validate.Struct(req); err != nil {
+		return err
+	}
+
+	return uc.repo.UpdateTransfer(ctx, userID, id, req)
+}
+
 func (uc *useCase) Save(ctx context.Context, transaction *Transaction) error {
+
+
 	if transaction == nil {
 		return nil
 	}

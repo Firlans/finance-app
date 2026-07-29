@@ -620,6 +620,71 @@
           "Call without auth returns 401."
         ]
       }
+    },
+    "/api/transactions/transfer": {
+      "post": {
+        "tags": [
+          "Transactions"
+        ],
+        "summary": "Transfer balance between accounts",
+        "description": "Transfer funds from a source account to a destination account with optional admin fee.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "from_account_id",
+                  "to_account_id",
+                  "amount",
+                  "transaction_date"
+                ],
+                "properties": {
+                  "from_account_id": {
+                    "type": "integer"
+                  },
+                  "to_account_id": {
+                    "type": "integer"
+                  },
+                  "amount": {
+                    "type": "number"
+                  },
+                  "admin_fee": {
+                    "type": "number"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "transaction_date": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Transfer successful."
+          },
+          "400": {
+            "description": "Validation error or same account transfer."
+          },
+          "401": {
+            "description": "Unauthorized access."
+          },
+          "500": {
+            "description": "Internal server error."
+          }
+        }
+      }
     }
   }
 }

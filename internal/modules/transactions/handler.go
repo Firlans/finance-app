@@ -24,11 +24,16 @@ func (h *Handler) RegisterRoutes(app *fiber.App, authMiddleware fiber.Handler, r
 	transactionsGroup := app.Group("api/transactions", authMiddleware)
 
 	transactionsGroup.Get("/", h.getTransactions)
+	transactionsGroup.Get("/transfer/:id", h.getTransferByID)
 	transactionsGroup.Get("/:id", h.getTransactionByID)
 	transactionsGroup.Post("/", h.createTransaction)
+	transactionsGroup.Post("/transfer", h.createTransfer)
+	transactionsGroup.Put("/transfer/:id", h.updateTransfer)
 	transactionsGroup.Put("/:id", h.updateTransaction)
 	transactionsGroup.Delete("/:id", h.deleteTransaction)
 }
+
+
 
 func (h *Handler) getTransactions(c *fiber.Ctx) error {
 	userID, ok := c.Locals("user_id").(string)
@@ -234,3 +239,141 @@ func (h *Handler) deleteTransaction(c *fiber.Ctx) error {
 		"message": "Delete transaction",
 	})
 }
+
+func (h *Handler) createTransfer(c *fiber.Ctx) error {
+	var req CreateTransferRequest
+
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":      "Invalid request body",
+			"request_id": c.Locals("request_id"),
+		})
+	}
+
+	if err := h.validate.Struct(&req); err != nil {
+		if validationErrors, ok := err.(validator.ValidationErrors); ok {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error":      "Validation failed",
+				"details":    validationErrors.Error(),
+				"request_id": c.Locals("request_id"),
+			})
+		}
+
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":      err.Error(),
+			"request_id": c.Locals("request_id"),
+		})
+	}
+
+	userID, ok := c.Locals("user_id").(string)
+	if !ok || userID == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error":      "User ID not found in JWT token",
+			"request_id": c.Locals("request_id"),
+		})
+	}
+
+	err := h.useCase.CreateTransfer(c.Context(), userID, &req)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error":      err.Error(),
+			"request_id": c.Locals("request_id"),
+		})
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+		"message": "Transfer successful",
+	})
+}
+
+func (h *Handler) getTransferByID(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":      "Invalid transfer ID",
+			"request_id": c.Locals("request_id"),
+		})
+	}
+
+	userID, ok := c.Locals("user_id").(string)
+	if !ok || userID == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error":      "User ID not found in JWT token",
+			"request_id": c.Locals("request_id"),
+		})
+	}
+
+	res, err := h.useCase.GetTransferByID(c.Context(), userID, id)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error":      err.Error(),
+			"request_id": c.Locals("request_id"),
+		})
+	}
+
+	if res == nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error":      "Transfer transaction not found",
+			"request_id": c.Locals("request_id"),
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "Get transfer transaction by ID",
+		"data":    res,
+	})
+}
+
+func (h *Handler) updateTransfer(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":      "Invalid transfer ID",
+			"request_id": c.Locals("request_id"),
+		})
+	}
+
+	var req CreateTransferRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":      "Invalid request body",
+			"request_id": c.Locals("request_id"),
+		})
+	}
+
+	if err := h.validate.Struct(&req); err != nil {
+		if validationErrors, ok := err.(validator.ValidationErrors); ok {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error":      "Validation failed",
+				"details":    validationErrors.Error(),
+				"request_id": c.Locals("request_id"),
+			})
+		}
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":      err.Error(),
+			"request_id": c.Locals("request_id"),
+		})
+	}
+
+	userID, ok := c.Locals("user_id").(string)
+	if !ok || userID == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error":      "User ID not found in JWT token",
+			"request_id": c.Locals("request_id"),
+		})
+	}
+
+	err = h.useCase.UpdateTransfer(c.Context(), userID, id, &req)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error":      err.Error(),
+			"request_id": c.Locals("request_id"),
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "Transfer updated successfully",
+	})
+}
+
+
