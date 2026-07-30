@@ -59,7 +59,7 @@ func Bootstrap(config *BootstrapConfig) {
 	// ========================================
 	config.App.Get("/health", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
-			"status":    "ok",
+			"status":    "OK",
 			"timestamp": c.Context().Time(),
 		})
 	})
