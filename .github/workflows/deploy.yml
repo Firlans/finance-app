@@ -37,13 +37,14 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          echo "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           
           cat << EOF > ~/.ssh/config
           Host $VPS_HOST
               User $VPS_USER
               IdentityFile ~/.ssh/deploy_key
+              IdentitiesOnly yes
               ProxyCommand cloudflared access ssh --hostname %h
               StrictHostKeyChecking no
               UserKnownHostsFile /dev/null
@@ -54,7 +55,7 @@ jobs:
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
         run: |
-          ssh $VPS_HOST << 'EOF'
+          ssh -i ~/.ssh/deploy_key $VPS_HOST << 'EOF'
             set -e
             cd /home/firlan/finance-app
             git pull origin backend
