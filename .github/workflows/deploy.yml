@@ -57,6 +57,7 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key $VPS_HOST << 'EOF'
             set -e
+            git config --global --add safe.directory /home/firlan/finance-app
             cd /home/firlan/finance-app
             git pull origin backend
             cd /home/firlan/docker
