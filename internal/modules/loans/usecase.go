@@ -60,9 +60,9 @@ func (uc *useCase) Save(ctx context.Context, loan *CreateLoanRequest) (int, erro
 
 	var transactionType string
 	if loan.AccountID != nil && *loan.AccountID > 0 {
-		transactionType = "credit"
+		transactionType = "debit"
 		if loan.LoanType == "debt" {
-			transactionType = "debit"
+			transactionType = "credit"
 		}
 		
 		payment.Transaction = &payments.TransactionInput{

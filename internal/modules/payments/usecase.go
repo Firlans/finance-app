@@ -232,19 +232,19 @@ func (uc *useCase) Delete(ctx context.Context, id int) error {
 func (uc *useCase) determineTransactionType(ctx context.Context, loanID int, paymentType string) string {
 	loanType, err := uc.repo.GetLoanTypeByID(ctx, loanID)
 	if err != nil {
-		return "decrease" // fallback
+		return "credit" // fallback
 	}
 
 	if loanType == "debt" {
 		if paymentType == "decrease" {
-			return "credit"
+			return "debit"
 		}
-		return "debit"
+		return "credit"
 	}
 
 	// receivable or fallback
 	if paymentType == "decrease" {
-		return "debit"
+		return "credit"
 	}
-	return "credit"
+	return "debit"
 }
