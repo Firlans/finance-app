@@ -34,7 +34,6 @@ const handleRegister = async (event) => {
   loading.start({ label: 'Registering account...' })
 
   try {
-
     const res = await fetch(`${API_BASE}/users/register`, {
       method: 'POST',
       headers: {
@@ -46,7 +45,6 @@ const handleRegister = async (event) => {
         password: form.password
       })
     })
-
 
     if (!res.ok) {
       const errorMessage = await parseApiError(res)
@@ -62,7 +60,6 @@ const handleRegister = async (event) => {
     loading.stop()
   }
 }
-
 </script>
 
 <template>
@@ -86,7 +83,6 @@ const handleRegister = async (event) => {
             </button>
           </template>
         </BaseInput>
-
 
         <BaseInput v-model="form.confirmPassword" label="Confirm Password" type="password"
           required

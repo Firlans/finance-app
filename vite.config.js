@@ -49,6 +49,14 @@ export default defineComponent({
 // https://vite.dev/config/
 export default defineConfig({
   base: '/finance-app/',
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true
+      }
+    }
+  },
   plugins: [
     vuePatternPlugin(),
     vue(),

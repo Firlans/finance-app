@@ -1,8 +1,7 @@
 <script setup>
 import { reactive, ref, computed, watch, nextTick } from 'vue'
 import dayjs from 'dayjs'
-import BaseInput from '@packages/components/base/BaseInput.vue'
-import BaseSelect from '@packages/components/base/BaseSelect.vue'
+import { BaseButton, FormFeatures, BaseInput, BaseSelect } from '@packages/components'
 import { Loading } from '@packages/utils/Loading.js'
 import { Notification } from '@packages/utils/Notification.js'
 import { createTransfer, getTransferByID, updateTransfer } from '@/DataService.js'
@@ -120,7 +119,7 @@ const resetForm = () => {
   form.transaction_date = dayjs().format('YYYY-MM-DD')
 }
 
-const handleSubmit = async () => {
+const handleSubmit = async (event) => {
   if (!form.from_account_id) {
     notification.showError('Pilih Akun Asal')
     return
@@ -142,7 +141,7 @@ const handleSubmit = async () => {
     return
   }
 
-  loading.start({ label: props.editingId ? 'Menyimpan perubahan transfer...' : 'Memproses transfer...' })
+  event.loading.start()
   try {
     const payload = {
       from_account_id: Number(form.from_account_id),
@@ -164,7 +163,7 @@ const handleSubmit = async () => {
   } catch (error) {
     notification.showError(error?.message || 'Gagal menyimpan transfer')
   } finally {
-    loading.stop()
+    event.loading.stop()
   }
 }
 </script>
@@ -193,7 +192,7 @@ const handleSubmit = async () => {
       </div>
 
       <!-- Form Body -->
-      <form @submit.prevent="handleSubmit" class="space-y-4 p-6">
+      <FormFeatures @submit="handleSubmit" class="space-y-4 p-6">
         <!-- Akun Asal & Akun Tujuan -->
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
@@ -249,14 +248,11 @@ const handleSubmit = async () => {
           <button type="button" @click="$emit('close')" class="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
             Batal
           </button>
-          <button type="submit" :disabled="!isBalanceSufficient" class="inline-flex items-center space-x-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50">
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-            </svg>
+          <BaseButton type="submit" :disabled="!isBalanceSufficient" buttonClass="inline-flex items-center space-x-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50">
             <span>{{ submitLabel }}</span>
-          </button>
+          </BaseButton>
         </div>
-      </form>
+      </FormFeatures>
     </div>
   </div>
 </template>

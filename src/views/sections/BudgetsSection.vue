@@ -1,6 +1,6 @@
 <script setup>
 import { reactive, ref, computed, onMounted, nextTick } from 'vue'
-import BaseInput from '@packages/components/base/BaseInput.vue'
+import { BaseButton, FormFeatures, BaseInput } from '@packages/components'
 import { Loading } from '@packages/utils/Loading.js'
 import { Notification } from '@packages/utils/Notification.js'
 import { getBudgets, upsertBudget, deleteBudget, getCategories } from '@/DataService.js'
@@ -152,12 +152,12 @@ const toggleCategory = (catId) => {
 }
 
 const handleSubmit = async (event) => {
-  event.preventDefault()
   if (!event.target.reportValidity()) {
     notification.showError('Periksa kembali data anggaran')
     return
   }
   
+  event.loading.start()
   const payload = {
     name: form.name.trim(),
     amount: parseFloat(form.amount),
@@ -180,19 +180,18 @@ const handleSubmit = async (event) => {
     closeForm()
   } catch (error) {
     notification.showError(error?.message || 'Gagal menyimpan anggaran')
+  } finally {
+    event.loading.stop()
   }
 }
 
 const handleDelete = async (id) => {
   if (!confirm('Apakah Anda yakin ingin menghapus anggaran ini?')) return
-  
   try {
     await deleteBudget(token, id)
     notification.showSuccess('Anggaran berhasil dihapus')
-    if (editingId.value === id) {
-      closeForm()
-    }
     await loadData()
+    if (editingId.value === id) closeForm()
   } catch (error) {
     notification.showError(error?.message || 'Gagal menghapus anggaran')
   }
@@ -231,32 +230,32 @@ onMounted(async () => {
         </div>
         <button @click="closeForm" class="text-sm font-medium text-slate-600 transition hover:text-slate-900">Batal</button>
       </div>
-      <form ref="formRef" @submit.prevent="handleSubmit" class="grid gap-5 pt-6 md:grid-cols-2">
+      <FormFeatures ref="formRef" @submit="handleSubmit" class="grid gap-5 pt-6 md:grid-cols-2">
         <BaseInput v-model="form.name" label="Nama Anggaran" placeholder="Contoh: Makan Bulanan" required />
-        <BaseInput v-model="form.amount" type="number" label="Batas Nominal (Rp)" placeholder="Contoh: 1500000" required min="1" />
+        <BaseInput v-model="form.amount" label="Target Nominal (Rp)" type="money" placeholder="0" required />
         
-        <div class="flex flex-col space-y-1.5">
-          <label class="text-sm font-medium text-slate-700">Tipe Siklus</label>
-          <select v-model="form.interval_type" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition-all focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+        <div>
+          <label class="text-sm font-medium text-slate-700 block mb-1">Tipe Siklus</label>
+          <select v-model="form.interval_type" class="w-full border border-slate-300 rounded-xl p-2.5 text-sm bg-white outline-none focus:border-blue-500">
             <option v-for="opt in intervalOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
           </select>
         </div>
 
-        <div v-if="form.interval_type === 'weekly'" class="flex flex-col space-y-1.5">
-          <label class="text-sm font-medium text-slate-700">Hari (Senin-Minggu)</label>
-          <select v-model="form.day" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition-all focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+        <div v-if="form.interval_type === 'weekly'">
+          <label class="text-sm font-medium text-slate-700 block mb-1">Pilih Hari</label>
+          <select v-model.number="form.day" class="w-full border border-slate-300 rounded-xl p-2.5 text-sm bg-white outline-none focus:border-blue-500">
             <option v-for="opt in dayOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
           </select>
         </div>
 
-        <div v-if="form.interval_type === 'monthly' || form.interval_type === 'yearly'" class="flex flex-col space-y-1.5">
-          <label class="text-sm font-medium text-slate-700">Tanggal (1-31)</label>
-          <input type="number" v-model="form.date" min="1" max="31" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition-all focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required />
+        <div v-if="form.interval_type === 'monthly' || form.interval_type === 'yearly'">
+          <label class="text-sm font-medium text-slate-700 block mb-1">Tanggal (1-31)</label>
+          <input type="number" min="1" max="31" v-model.number="form.date" class="w-full border border-slate-300 rounded-xl p-2.5 text-sm bg-white outline-none focus:border-blue-500" required />
         </div>
 
-        <div v-if="form.interval_type === 'yearly'" class="flex flex-col space-y-1.5">
-          <label class="text-sm font-medium text-slate-700">Bulan</label>
-          <select v-model="form.month" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition-all focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+        <div v-if="form.interval_type === 'yearly'">
+          <label class="text-sm font-medium text-slate-700 block mb-1">Pilih Bulan</label>
+          <select v-model.number="form.month" class="w-full border border-slate-300 rounded-xl p-2.5 text-sm bg-white outline-none focus:border-blue-500">
             <option v-for="opt in monthOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
           </select>
         </div>
@@ -293,12 +292,12 @@ onMounted(async () => {
             class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:w-auto">
             Batal
           </button>
-          <button type="submit"
-            class="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 sm:w-auto">
+          <BaseButton type="submit"
+            buttonClass="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 sm:w-auto">
             {{ submitLabel }}
-          </button>
+          </BaseButton>
         </div>
-      </form>
+      </FormFeatures>
     </div>
 
     <!-- Daftar Anggaran -->

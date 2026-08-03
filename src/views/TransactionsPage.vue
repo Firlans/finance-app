@@ -1,6 +1,6 @@
 <script setup>
 import { reactive, ref, computed, onMounted, nextTick, h, onUnmounted, watch } from 'vue'
-import { BaseInput, BaseLookup, BaseSelect, BaseRoll, ToggleFeature } from '@packages/components'
+import { BaseButton, FormFeatures, BaseInput, BaseLookup, BaseSelect, BaseRoll, ToggleFeature } from '@packages/components'
 import dayjs from "dayjs"
 import 'dayjs/locale/id'
 dayjs.locale('id')
@@ -346,11 +346,12 @@ const numeric = (value) => {
 }
 
 const handleSubmit = async (event) => {
-  event.preventDefault()
   if (!event.target.reportValidity()) {
     notification.showError('Periksa kembali data transaksi')
     return
   }
+
+  event.loading.start()
 
   const payload = {
     description: form.description.trim(),
@@ -373,6 +374,8 @@ const handleSubmit = async (event) => {
     closeForm()
   } catch (error) {
     notification.showError(error?.message || 'Gagal menyimpan transaksi')
+  } finally {
+    event.loading.stop()
   }
 }
 
@@ -508,7 +511,7 @@ onUnmounted(() => {
           class="text-sm font-medium text-slate-600 transition hover:text-slate-900">Batal</button>
       </div>
 
-      <form ref="formRef" @submit.prevent="handleSubmit" class="grid gap-5 pt-6 md:grid-cols-2">
+      <FormFeatures ref="formRef" @submit="handleSubmit" class="grid gap-5 pt-6 md:grid-cols-2">
         <div class="space-y-1.5 md:col-span-2">
           <label class="block text-sm font-semibold text-slate-700">Tipe Transaksi</label>
           <ToggleFeature v-model="form.type" :options="typeOptions" />
@@ -534,12 +537,12 @@ onUnmounted(() => {
             class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:w-auto">
             Batal
           </button>
-          <button type="submit"
-            class="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 sm:w-auto">
+          <BaseButton type="submit"
+            buttonClass="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 sm:w-auto">
             {{ submitLabel }}
-          </button>
+          </BaseButton>
         </div>
-      </form>
+      </FormFeatures>
     </div>
 
     <div class="bg-white rounded-3xl p-6 shadow-lg">

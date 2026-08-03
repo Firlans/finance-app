@@ -1,6 +1,6 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
-import BaseInput from '@packages/components/base/BaseInput.vue'
+import { BaseButton, FormFeatures, BaseInput } from '@packages/components'
 import { Notification } from '@packages/utils/Notification.js'
 import { createPayment, updatePayment, getAccounts } from '@/DataService.js'
 
@@ -12,7 +12,6 @@ const props = defineProps({
 
 const notification = new Notification()
 
-const loading = ref(false)
 const showAddPaymentForm = ref(false)
 const accounts = ref([])
 
@@ -83,9 +82,9 @@ const numericAmount = (value) => {
   return Number.isFinite(n) && n > 0
 }
 
-const submitAddPayment = async () => {
+const submitAddPayment = async (event) => {
   if (!props.loan?.id) return
-  loading.value = true
+  event.loading.start()
   try {
     const payload = {
       loan_id: props.loan.id,
@@ -115,7 +114,7 @@ const submitAddPayment = async () => {
   } catch (error) {
     notification.showError(error?.message || 'Gagal menyimpan payment')
   } finally {
-    loading.value = false
+    event.loading.stop()
   }
 }
 
@@ -138,24 +137,22 @@ const paymentsTotal = computed(() => props.payments.length)
 </script>
 
 <template>
-  <div class="space-y-4">
-    <div class="space-y-1">
-      <div class="flex items-center justify-between gap-3 flex-wrap">
-        <div class="min-w-0">
-          <h2 class="text-lg font-semibold text-slate-900">{{ loanTitle }}</h2>
-          <div class="flex flex-wrap gap-2 items-center mt-2">
-            <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-              Terhutang/Piutang: {{ formatCurrency(outstanding) }}
-            </span>
-            <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-              Payments: {{ paymentsTotal }}
-            </span>
-          </div>
-          <p class="text-sm text-slate-500 mt-2">Dibuat: {{ formatDate(loan?.created_at) }}</p>
+  <div class="space-y-6">
+    <div class="rounded-2xl bg-white border border-slate-200 p-4 shadow-sm">
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Detail Hutang</p>
+          <h3 class="text-lg font-bold text-slate-900">{{ loanTitle }}</h3>
         </div>
+        <div class="text-left sm:text-right">
+          <p class="text-xs text-slate-500">Sisa Terhutang</p>
+          <p class="text-lg font-bold text-slate-900">{{ formatCurrency(outstanding) }}</p>
+        </div>
+      </div>
 
+      <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
+        <span class="text-xs text-slate-500">Total Payments: {{ paymentsTotal }}</span>
         <button
-          v-if="loan?.id"
           @click="openAddPayment"
           class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
         >
@@ -165,7 +162,7 @@ const paymentsTotal = computed(() => props.payments.length)
 
       <div v-if="showAddPaymentForm" class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
         <p class="text-sm font-semibold text-slate-900 mb-3">{{ editingPaymentId ? 'Edit Payment' : 'Form Payment' }}</p>
-        <form @submit.prevent="submitAddPayment" class="grid gap-4 md:grid-cols-2">
+        <FormFeatures @submit="submitAddPayment" class="grid gap-4 md:grid-cols-2">
           <BaseInput
             v-model="form.amount"
             label="Jumlah (Pokok)"
@@ -232,15 +229,14 @@ const paymentsTotal = computed(() => props.payments.length)
             >
               Batal
             </button>
-            <button
+            <BaseButton
               type="submit"
-              class="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 sm:w-auto"
-              :disabled="loading"
+              buttonClass="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 sm:w-auto"
             >
-              {{ loading ? 'Menyimpan...' : 'Simpan Payment' }}
-            </button>
+              Simpan Payment
+            </BaseButton>
           </div>
-        </form>
+        </FormFeatures>
       </div>
     </div>
 

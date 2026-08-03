@@ -1,6 +1,6 @@
 <script setup>
 import { reactive, ref, computed, onMounted, nextTick, h } from 'vue'
-import BaseInput from '@packages/components/base/BaseInput.vue'
+import { BaseButton, FormFeatures, BaseInput } from '@packages/components'
 import { Loading } from '@packages/utils/Loading.js'
 import { Notification } from '@packages/utils/Notification.js'
 import { Dialog } from '@packages/utils/Dialog.js'
@@ -109,11 +109,11 @@ const deleteFromMobileActions = async () => {
 const validCategoryName = (value) => String(value).trim().length > 0
 
 const handleSubmit = async (event) => {
-  event.preventDefault()
   if (!event.target.reportValidity()) {
     notification.showError('Periksa kembali data kategori')
     return
   }
+  event.loading.start()
   const payload = {
     name: form.name.trim(),
     description: form.description.trim(),
@@ -131,6 +131,8 @@ const handleSubmit = async (event) => {
     closeForm()
   } catch (error) {
     notification.showError(error?.message || 'Gagal menyimpan kategori')
+  } finally {
+    event.loading.stop()
   }
 }
 
@@ -166,7 +168,7 @@ onMounted(async () => {
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h2 class="text-lg font-semibold text-slate-900">Kategori</h2>
-        <p class="text-slate-500 text-sm">Kelola kategori untuk transaksi Anda.</p>
+        <p class="text-slate-500 text-sm">Kelola kategori pemasukan dan pengeluaran.</p>
       </div>
       <button @click="openNewForm"
         class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
@@ -174,52 +176,54 @@ onMounted(async () => {
       </button>
     </div>
 
-      <div class="grid gap-4 md:grid-cols-[1fr_auto]">
-        <input v-model="searchQuery" type="search" placeholder="Cari kategori..."
-          class="w-full rounded-2xl border border-slate-300 bg-white py-3 px-4 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100" />
-        <div class="text-sm text-slate-500 self-end">Total: {{ filteredCategories.length }} kategori</div>
+    <div class="grid gap-6 md:grid-cols-3">
+      <div class="md:col-span-2">
+        <input v-model="searchQuery" type="text" placeholder="Cari nama kategori atau deskripsi..."
+          class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-sm shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
       </div>
+      <div class="text-sm text-slate-500 self-end">Total: {{ filteredCategories.length }} kategori</div>
+    </div>
 
-      <div v-if="isFormOpen" class="bg-white rounded-3xl p-6 shadow-lg">
-        <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-200">
-          <div>
-            <h3 class="text-lg font-semibold text-slate-900">{{ formTitle }}</h3>
-            <p class="text-slate-500 text-sm">Isi data kategori lalu simpan.</p>
-          </div>
-          <button @click="closeForm" class="text-sm font-medium text-slate-600 transition hover:text-slate-900">Batal</button>
+    <div v-if="isFormOpen" class="bg-white rounded-3xl p-6 shadow-lg">
+      <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-200">
+        <div>
+          <h3 class="text-lg font-semibold text-slate-900">{{ formTitle }}</h3>
+          <p class="text-slate-500 text-sm">Isi data kategori lalu simpan.</p>
         </div>
-        <form ref="formRef" @submit.prevent="handleSubmit" class="grid gap-5 pt-6 md:grid-cols-2">
-          <BaseInput v-model="form.name" label="Nama Kategori" placeholder="Contoh: Makanan & Minuman"
-            required
-            :validate="['Nama kategori wajib diisi', validCategoryName]" />
-          <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-slate-700 mb-2">Tipe Kategori</label>
-            <div class="grid grid-cols-2 gap-3">
-              <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-3 cursor-pointer hover:bg-slate-50">
-                <input type="radio" value="expense" v-model="form.type_category" class="accent-blue-600" />
-                <span class="text-sm font-semibold text-slate-800">Pengeluaran (Expense)</span>
-              </label>
-              <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-3 cursor-pointer hover:bg-slate-50">
-                <input type="radio" value="income" v-model="form.type_category" class="accent-blue-600" />
-                <span class="text-sm font-semibold text-slate-800">Pendapatan (Income)</span>
-              </label>
-            </div>
-          </div>
-          <div class="md:col-span-2">
-            <BaseInput v-model="form.description" label="Deskripsi" placeholder="Contoh: Pengeluaran harian untuk makan" />
-          </div>
-          <div class="md:col-span-2 flex flex-col gap-3 sm:flex-row sm:justify-end">
-            <button type="button" @click="closeForm"
-              class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:w-auto">
-              Batal
-            </button>
-            <button type="submit"
-              class="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 sm:w-auto">
-              {{ submitLabel }}
-            </button>
-          </div>
-        </form>
+        <button @click="closeForm" class="text-sm font-medium text-slate-600 transition hover:text-slate-900">Batal</button>
       </div>
+      <FormFeatures ref="formRef" @submit="handleSubmit" class="grid gap-5 pt-6 md:grid-cols-2">
+        <BaseInput v-model="form.name" label="Nama Kategori" placeholder="Contoh: Makanan & Minuman"
+          required
+          :validate="['Nama kategori wajib diisi', validCategoryName]" />
+        <div class="md:col-span-2">
+          <label class="block text-sm font-medium text-slate-700 mb-2">Tipe Kategori</label>
+          <div class="grid grid-cols-2 gap-3">
+            <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-3 cursor-pointer hover:bg-slate-50">
+              <input type="radio" value="expense" v-model="form.type_category" class="accent-blue-600" />
+              <span class="text-sm font-semibold text-slate-800">Pengeluaran (Expense)</span>
+            </label>
+            <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-3 cursor-pointer hover:bg-slate-50">
+              <input type="radio" value="income" v-model="form.type_category" class="accent-blue-600" />
+              <span class="text-sm font-semibold text-slate-800">Pendapatan (Income)</span>
+            </label>
+          </div>
+        </div>
+        <div class="md:col-span-2">
+          <BaseInput v-model="form.description" label="Deskripsi" placeholder="Contoh: Pengeluaran harian untuk makan" />
+        </div>
+        <div class="md:col-span-2 flex flex-col gap-3 sm:flex-row sm:justify-end">
+          <button type="button" @click="closeForm"
+            class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:w-auto">
+            Batal
+          </button>
+          <BaseButton type="submit"
+            buttonClass="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 sm:w-auto">
+            {{ submitLabel }}
+          </BaseButton>
+        </div>
+      </FormFeatures>
+    </div>
 
       <div class="bg-white rounded-3xl p-6 shadow-lg">
         <div v-if="filteredCategories.length === 0" class="space-y-3 text-center text-slate-600">

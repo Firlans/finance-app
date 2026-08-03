@@ -1,6 +1,6 @@
 <script setup>
 import { reactive, ref, computed, onMounted, nextTick, h } from 'vue'
-import BaseInput from '@packages/components/base/BaseInput.vue'
+import { BaseButton, FormFeatures, BaseInput } from '@packages/components'
 import { Loading } from '@packages/utils/Loading.js'
 import { Notification } from '@packages/utils/Notification.js'
 import { Dialog } from '@packages/utils/Dialog.js'
@@ -118,11 +118,11 @@ const numeric = (value) => {
 }
 
 const handleSubmit = async (event) => {
-  event.preventDefault()
   if (!event.target.reportValidity()) {
     notification.showError('Periksa kembali data akun')
     return
   }
+  event.loading.start()
   const payload = {
     account_name: form.account_name.trim(),
     description: form.description.trim(),
@@ -140,6 +140,8 @@ const handleSubmit = async (event) => {
     closeForm()
   } catch (error) {
     notification.showError(error?.message || 'Gagal menyimpan akun')
+  } finally {
+    event.loading.stop()
   }
 }
 
@@ -179,14 +181,11 @@ onMounted(async () => {
       </div>
       <div class="flex items-center space-x-3">
         <button @click="isTransferOpen = true"
-          class="inline-flex items-center justify-center space-x-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100">
-          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-          </svg>
-          <span>Transfer / Tarik Tunai</span>
+          class="rounded-xl border border-blue-600 bg-white px-4 py-2.5 text-sm font-semibold text-blue-600 transition hover:bg-blue-50">
+          Transfer / Tarik
         </button>
         <button @click="openNewForm"
-          class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
+          class="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">
           Tambah Akun
         </button>
       </div>

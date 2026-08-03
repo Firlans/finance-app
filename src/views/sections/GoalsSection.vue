@@ -1,6 +1,6 @@
 <script setup>
 import { reactive, ref, computed, onMounted, nextTick } from 'vue'
-import BaseInput from '@packages/components/base/BaseInput.vue'
+import { BaseButton, FormFeatures, BaseInput } from '@packages/components'
 import { Loading } from '@packages/utils/Loading.js'
 import { Notification } from '@packages/utils/Notification.js'
 import { getGoals, createGoal, updateGoal, deleteGoal } from '@/DataService.js'
@@ -68,11 +68,12 @@ const openEditForm = async (goal) => {
 const closeForm = () => { isFormOpen.value = false; resetForm() }
 
 const handleSubmit = async (event) => {
-  event.preventDefault()
   if (!event.target.reportValidity()) {
     notification.showError('Periksa kembali data goal')
     return
   }
+
+  event.loading.start()
 
   const payload = {
     name: form.name.trim(),
@@ -91,6 +92,8 @@ const handleSubmit = async (event) => {
     closeForm()
   } catch (error) {
     notification.showError(error?.message || 'Gagal menyimpan goal')
+  } finally {
+    event.loading.stop()
   }
 }
 
@@ -142,7 +145,7 @@ onMounted(async () => {
         </div>
         <button @click="closeForm" class="text-sm font-medium text-slate-600 transition hover:text-slate-900">Batal</button>
       </div>
-      <form ref="formRef" @submit.prevent="handleSubmit" class="grid gap-5 pt-6 md:grid-cols-2">
+      <FormFeatures ref="formRef" @submit="handleSubmit" class="grid gap-5 pt-6 md:grid-cols-2">
         <BaseInput v-model="form.name" label="Nama Tabungan" placeholder="Contoh: Liburan Bali" required />
         <BaseInput v-model="form.target_amount" type="money" label="Target (Rp)" placeholder="Contoh: 5000000" required min="1" />
         <BaseInput v-model="form.current_amount" type="money" label="Jumlah Saat Ini (Rp)" placeholder="Contoh: 2000000" min="0" />
@@ -156,12 +159,12 @@ onMounted(async () => {
             class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:w-auto">
             Batal
           </button>
-          <button type="submit"
-            class="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 sm:w-auto">
+          <BaseButton type="submit"
+            buttonClass="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 sm:w-auto">
             {{ submitLabel }}
-          </button>
+          </BaseButton>
         </div>
-      </form>
+      </FormFeatures>
     </div>
 
     <!-- Daftar Goals -->
