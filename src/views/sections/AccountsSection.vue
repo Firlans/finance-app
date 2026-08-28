@@ -34,6 +34,7 @@ const isFormOpen = ref(false)
 const selectedAccount = ref(null)
 const editingId = ref(null)
 const formRef = ref(null)
+const isSubmitting = ref(false)
 
 const form = reactive({ account_name: '', description: '', balance: '' })
 
@@ -118,11 +119,12 @@ const numeric = (value) => {
 }
 
 const handleSubmit = async (event) => {
-  if (!event.target.reportValidity()) {
-    notification.showError('Periksa kembali data akun')
+  if (isSubmitting.value || !event.currentTarget.reportValidity()) {
+    if (!isSubmitting.value) notification.showError('Periksa kembali data akun')
     return
   }
-  event.loading.start()
+
+  isSubmitting.value = true
   const payload = {
     account_name: form.account_name.trim(),
     description: form.description.trim(),
@@ -141,7 +143,7 @@ const handleSubmit = async (event) => {
   } catch (error) {
     notification.showError(error?.message || 'Gagal menyimpan akun')
   } finally {
-    event.loading.stop()
+    isSubmitting.value = false
   }
 }
 
@@ -226,9 +228,9 @@ onMounted(async () => {
               class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:w-auto">
               Batal
             </button>
-            <button type="submit"
-              class="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 sm:w-auto">
-              {{ submitLabel }}
+            <button type="submit" :disabled="isSubmitting"
+              class="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto">
+              {{ isSubmitting ? 'Menyimpan...' : submitLabel }}
             </button>
           </div>
         </form>
